@@ -10,7 +10,7 @@ func TestMergeBlockStreamsOneStreamOneRow(t *testing.T) {
 	rows := []rawRow{
 		{
 			Timestamp:     82394327423432,
-			Value:         123.42389,
+			Value:         []byte("hi faceair"),
 			PrecisionBits: defaultPrecisionBits,
 		},
 	}
@@ -27,7 +27,7 @@ func TestMergeBlockStreamsOneStreamOneBlockManyRows(t *testing.T) {
 	maxTimestamp := int64(-1 << 63)
 	for i := 0; i < maxRowsPerBlock; i++ {
 		r.Timestamp = int64(rand.Intn(1e9))
-		r.Value = rand.NormFloat64() * 2332
+		r.Value = []byte("hi faceair")
 		rows = append(rows, r)
 
 		if r.Timestamp < minTimestamp {
@@ -53,7 +53,7 @@ func TestMergeBlockStreamsOneStreamManyBlocksOneRow(t *testing.T) {
 		initTestTSID(&r.TSID)
 		r.TSID.MetricID = uint64(i * 123)
 		r.Timestamp = int64(rand.Intn(1e9))
-		r.Value = rand.NormFloat64() * 2332
+		r.Value = []byte("hi faceair")
 		rows = append(rows, r)
 
 		if r.Timestamp < minTimestamp {
@@ -80,7 +80,7 @@ func TestMergeBlockStreamsOneStreamManyBlocksManyRows(t *testing.T) {
 	for i := 0; i < rowsCount; i++ {
 		r.TSID.MetricID = uint64(i % blocksCount)
 		r.Timestamp = int64(rand.Intn(1e9))
-		r.Value = rand.NormFloat64() * 2332
+		r.Value = []byte("hi faceair")
 		rows = append(rows, r)
 
 		if r.Timestamp < minTimestamp {
@@ -100,7 +100,7 @@ func TestMergeBlockStreamsTwoStreamsOneBlockTwoRows(t *testing.T) {
 	rows := []rawRow{
 		{
 			Timestamp:     182394327423432,
-			Value:         3123.42389,
+			Value:         []byte("hi faceair"),
 			PrecisionBits: defaultPrecisionBits,
 		},
 	}
@@ -115,7 +115,7 @@ func TestMergeBlockStreamsTwoStreamsOneBlockTwoRows(t *testing.T) {
 	rows = []rawRow{
 		{
 			Timestamp:     maxTimestamp,
-			Value:         3123.42389,
+			Value:         []byte("hi faceair"),
 			PrecisionBits: defaultPrecisionBits,
 		},
 	}
@@ -123,7 +123,7 @@ func TestMergeBlockStreamsTwoStreamsOneBlockTwoRows(t *testing.T) {
 	rows = []rawRow{
 		{
 			Timestamp:     minTimestamp,
-			Value:         23.42389,
+			Value:         []byte("hi faceair"),
 			PrecisionBits: defaultPrecisionBits,
 		},
 	}
@@ -142,7 +142,7 @@ func TestMergeBlockStreamsTwoStreamsTwoBlocksOneRow(t *testing.T) {
 				MetricID: 8454,
 			},
 			Timestamp:     minTimestamp,
-			Value:         33.42389,
+			Value:         []byte("hi faceair"),
 			PrecisionBits: defaultPrecisionBits,
 		},
 	}
@@ -154,7 +154,7 @@ func TestMergeBlockStreamsTwoStreamsTwoBlocksOneRow(t *testing.T) {
 				MetricID: 4454,
 			},
 			Timestamp:     maxTimestamp,
-			Value:         323.42389,
+			Value:         []byte("hi faceair"),
 			PrecisionBits: defaultPrecisionBits,
 		},
 	}
@@ -177,7 +177,7 @@ func TestMergeBlockStreamsTwoStreamsManyBlocksManyRows(t *testing.T) {
 	for i := 0; i < rowsCount1; i++ {
 		r.TSID.MetricID = uint64(i % blocksCount)
 		r.Timestamp = int64(rand.Intn(1e9))
-		r.Value = rand.NormFloat64() * 2332
+		r.Value = []byte("hi faceair")
 		rows = append(rows, r)
 
 		if r.Timestamp < minTimestamp {
@@ -194,7 +194,7 @@ func TestMergeBlockStreamsTwoStreamsManyBlocksManyRows(t *testing.T) {
 	for i := 0; i < rowsCount2; i++ {
 		r.TSID.MetricID = uint64((i + 17) % blocksCount)
 		r.Timestamp = int64(rand.Intn(1e9))
-		r.Value = rand.NormFloat64() * 2332
+		r.Value = []byte("hi faceair")
 		rows = append(rows, r)
 
 		if r.Timestamp < minTimestamp {
@@ -220,7 +220,7 @@ func TestMergeBlockStreamsTwoStreamsBigOverlappingBlocks(t *testing.T) {
 	const rowsCount1 = maxRowsPerBlock + 234
 	for i := 0; i < rowsCount1; i++ {
 		r.Timestamp = int64(i * 2894)
-		r.Value = float64(int(rand.NormFloat64() * 1e2))
+		r.Value = []byte("hi faceair")
 		rows = append(rows, r)
 
 		if r.Timestamp < minTimestamp {
@@ -236,7 +236,7 @@ func TestMergeBlockStreamsTwoStreamsBigOverlappingBlocks(t *testing.T) {
 	const rowsCount2 = maxRowsPerBlock + 2344
 	for i := 0; i < rowsCount2; i++ {
 		r.Timestamp = int64(i * 2494)
-		r.Value = float64(int(rand.NormFloat64() * 1e2))
+		r.Value = []byte("hi faceair")
 		rows = append(rows, r)
 
 		if r.Timestamp < minTimestamp {
@@ -262,7 +262,7 @@ func TestMergeBlockStreamsTwoStreamsBigSequentialBlocks(t *testing.T) {
 	const rowsCount1 = maxRowsPerBlock + 234
 	for i := 0; i < rowsCount1; i++ {
 		r.Timestamp = int64(i * 2894)
-		r.Value = float64(int(rand.NormFloat64() * 1e2))
+		r.Value = []byte("hi faceair")
 		rows = append(rows, r)
 
 		if r.Timestamp < minTimestamp {
@@ -279,7 +279,7 @@ func TestMergeBlockStreamsTwoStreamsBigSequentialBlocks(t *testing.T) {
 	const rowsCount2 = maxRowsPerBlock - 233
 	for i := 0; i < rowsCount2; i++ {
 		r.Timestamp = maxTimestampB1 + int64(i*2494)
-		r.Value = float64(int(rand.NormFloat64() * 1e2))
+		r.Value = []byte("hi faceair")
 		rows = append(rows, r)
 
 		if r.Timestamp < minTimestamp {
@@ -312,7 +312,7 @@ func TestMergeBlockStreamsManyStreamsManyBlocksManyRows(t *testing.T) {
 		for j := 0; j < rowsPerStream; j++ {
 			r.TSID.MetricID = uint64(j % blocksCount)
 			r.Timestamp = int64(rand.Intn(1e9))
-			r.Value = rand.NormFloat64()
+			r.Value = []byte("hi faceair")
 			rows = append(rows, r)
 
 			if r.Timestamp < minTimestamp {
@@ -345,7 +345,7 @@ func TestMergeForciblyStop(t *testing.T) {
 		for j := 0; j < rowsPerStream; j++ {
 			r.TSID.MetricID = uint64(j % blocksCount)
 			r.Timestamp = int64(rand.Intn(1e9))
-			r.Value = rand.NormFloat64()
+			r.Value = []byte("hi faceair")
 			rows = append(rows, r)
 
 			if r.Timestamp < minTimestamp {

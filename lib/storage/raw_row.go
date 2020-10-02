@@ -4,7 +4,6 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/VictoriaMetrics/VictoriaMetrics/lib/decimal"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/logger"
 )
 
@@ -17,7 +16,7 @@ type rawRow struct {
 	Timestamp int64
 
 	// Value is time series value for the given timestamp.
-	Value float64
+	Value []byte
 
 	// PrecisionBits is the number of the significant bits in the Value
 	// to store. Possible values are [1..64].
@@ -30,8 +29,8 @@ type rawRowsMarshaler struct {
 	bsw blockStreamWriter
 
 	auxTimestamps  []int64
-	auxValues      []int64
-	auxFloatValues []float64
+	auxValues      [][]byte
+	auxFloatValues [][]byte
 }
 
 func (rrm *rawRowsMarshaler) reset() {
@@ -104,7 +103,6 @@ func (rrm *rawRowsMarshaler) marshalToInmemoryPart(mp *inmemoryPart, rows []rawR
 	}
 
 	// Group rows into blocks.
-	var scale int16
 	var rowsMerged uint64
 	r := &rows[0]
 	tsid := &r.TSID
@@ -119,8 +117,8 @@ func (rrm *rawRowsMarshaler) marshalToInmemoryPart(mp *inmemoryPart, rows []rawR
 			continue
 		}
 
-		rrm.auxValues, scale = decimal.AppendFloatToDecimal(rrm.auxValues[:0], rrm.auxFloatValues)
-		tmpBlock.Init(tsid, rrm.auxTimestamps, rrm.auxValues, scale, precisionBits)
+		rrm.auxValues = append(rrm.auxValues[:0], rrm.auxFloatValues...)
+		tmpBlock.Init(tsid, rrm.auxTimestamps, rrm.auxValues, precisionBits)
 		rrm.bsw.WriteExternalBlock(tmpBlock, ph, &rowsMerged)
 
 		tsid = &r.TSID
@@ -129,8 +127,8 @@ func (rrm *rawRowsMarshaler) marshalToInmemoryPart(mp *inmemoryPart, rows []rawR
 		rrm.auxFloatValues = append(rrm.auxFloatValues[:0], r.Value)
 	}
 
-	rrm.auxValues, scale = decimal.AppendFloatToDecimal(rrm.auxValues[:0], rrm.auxFloatValues)
-	tmpBlock.Init(tsid, rrm.auxTimestamps, rrm.auxValues, scale, precisionBits)
+	rrm.auxValues = append(rrm.auxValues[:0], rrm.auxFloatValues...)
+	tmpBlock.Init(tsid, rrm.auxTimestamps, rrm.auxValues, precisionBits)
 	rrm.bsw.WriteExternalBlock(tmpBlock, ph, &rowsMerged)
 	if rowsMerged != uint64(len(rows)) {
 		logger.Panicf("BUG: unexpected rowsMerged; got %d; want %d", rowsMerged, len(rows))

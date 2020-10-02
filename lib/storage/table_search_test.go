@@ -150,7 +150,7 @@ func testTableSearchEx(t *testing.T, trData, trSearch TimeRange, partitionsCount
 			for k := 0; k < rowsCount; k++ {
 				r.TSID.MetricID = uint64(rand.Intn(tsidsCount))
 				r.Timestamp = timestamp
-				r.Value = float64(int(rand.NormFloat64() * 1e5))
+				r.Value = []byte("hi faceair")
 
 				timestamp += int64(rand.Intn(1e4)) + 1
 				if timestamp > ptr.MaxTimestamp {

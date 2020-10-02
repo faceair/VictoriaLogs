@@ -14,7 +14,6 @@ func TestBlockMarshalUnmarshalPortable(t *testing.T) {
 		rowsCount := rand.Intn(maxRowsPerBlock) + 1
 		b.timestamps = getRandTimestamps(rowsCount)
 		b.values = getRandValues(rowsCount)
-		b.bh.Scale = int16(rand.Intn(30) - 15)
 		b.bh.PrecisionBits = 64
 		testBlockMarshalUnmarshalPortable(t, &b)
 	}
@@ -65,14 +64,8 @@ func compareBlocksPortable(t *testing.T, b1, b2 *Block, bhExpected *blockHeader)
 	if b1.bh.MinTimestamp != bhExpected.MinTimestamp {
 		t.Fatalf("unexpected MinTimestamp; got %d; want %d", b1.bh.MinTimestamp, bhExpected.MinTimestamp)
 	}
-	if b1.bh.FirstValue != bhExpected.FirstValue {
-		t.Fatalf("unexpected FirstValue; got %d; want %d", b1.bh.FirstValue, bhExpected.FirstValue)
-	}
 	if b1.bh.RowsCount != bhExpected.RowsCount {
 		t.Fatalf("unexpected RowsCount; got %d; want %d", b1.bh.RowsCount, bhExpected.RowsCount)
-	}
-	if b1.bh.Scale != bhExpected.Scale {
-		t.Fatalf("unexpected Scale; got %d; want %d", b1.bh.Scale, bhExpected.Scale)
 	}
 	if b1.bh.TimestampsMarshalType != bhExpected.TimestampsMarshalType {
 		t.Fatalf("unexpected TimestampsMarshalType; got %d; want %d", b1.bh.TimestampsMarshalType, bhExpected.TimestampsMarshalType)
@@ -97,10 +90,16 @@ func compareBlocksPortable(t *testing.T, b1, b2 *Block, bhExpected *blockHeader)
 	}
 }
 
-func getRandValues(rowsCount int) []int64 {
-	a := make([]int64, rowsCount)
+var letterRunes = []byte("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+func getRandValues(rowsCount int) [][]byte {
+	a := make([][]byte, rowsCount)
 	for i := 0; i < rowsCount; i++ {
-		a[i] = int64(rand.Intn(1e5) - 0.5e5)
+		b := make([]byte, 12)
+		for i := range b {
+			b[i] = letterRunes[rand.Intn(len(letterRunes))]
+		}
+		a[i] = b
 	}
 	return a
 }

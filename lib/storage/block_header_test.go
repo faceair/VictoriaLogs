@@ -28,7 +28,6 @@ func TestBlockHeaderMarshalUnmarshal(t *testing.T) {
 		bh.TimestampsBlockSize = uint32((i*892 + 6) % maxBlockSize)
 		bh.ValuesBlockSize = uint32((i*894 + 7) % maxBlockSize)
 		bh.RowsCount = uint32(i*3 + 8)
-		bh.Scale = int16(i - 434 + 9)
 		bh.TimestampsMarshalType = encoding.MarshalType((i + 10) % 7)
 		bh.ValuesMarshalType = encoding.MarshalType((i + 11) % 7)
 		bh.PrecisionBits = 1 + uint8((i+12)%64)

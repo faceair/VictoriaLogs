@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"bytes"
 	"reflect"
 	"testing"
 	"time"
@@ -64,10 +65,10 @@ func TestDeduplicateSamplesDuringMerge(t *testing.T) {
 		t.Helper()
 		SetMinScrapeIntervalForDeduplication(scrapeInterval)
 		timestampsCopy := make([]int64, len(timestamps))
-		values := make([]int64, len(timestamps))
+		values := make([][]byte, len(timestamps))
 		for i, ts := range timestamps {
 			timestampsCopy[i] = ts
-			values[i] = int64(i)
+			values[i] = []byte{byte(i)}
 		}
 		timestampsCopy, values = deduplicateSamplesDuringMerge(timestampsCopy, values)
 		if !reflect.DeepEqual(timestampsCopy, timestampsExpected) {
@@ -85,7 +86,7 @@ func TestDeduplicateSamplesDuringMerge(t *testing.T) {
 			if ts != timestampsCopy[j] {
 				continue
 			}
-			if values[j] != int64(i) {
+			if bytes.Equal(values[j], []byte{byte(i)}) {
 				t.Fatalf("unexpected value at index %d; got %v; want %v; values: %v", j, values[j], i, values)
 			}
 			j++

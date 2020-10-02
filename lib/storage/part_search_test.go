@@ -7,8 +7,6 @@ import (
 	"sort"
 	"testing"
 	"time"
-
-	"github.com/VictoriaMetrics/VictoriaMetrics/lib/decimal"
 )
 
 func TestPartSearchOneRow(t *testing.T) {
@@ -17,7 +15,7 @@ func TestPartSearchOneRow(t *testing.T) {
 	r.PrecisionBits = defaultPrecisionBits
 	r.TSID.MetricID = 1234
 	r.Timestamp = 100
-	r.Value = 345
+	r.Value = []byte("hi faceair")
 	rows = append(rows, r)
 
 	p := newTestPart(rows)
@@ -187,7 +185,7 @@ func TestPartSearchOneRow(t *testing.T) {
 				MetricID: 1234,
 			},
 			Timestamps: []int64{100},
-			Values:     []float64{345},
+			Values:     [][]byte{[]byte("345")},
 		}}
 
 		tsids1 := []TSID{{MetricID: 1234}}
@@ -258,7 +256,7 @@ func TestPartSearchOneRow(t *testing.T) {
 				MetricID: 1234,
 			},
 			Timestamps: []int64{100},
-			Values:     []float64{345},
+			Values:     [][]byte{[]byte("345")},
 		}}
 
 		tsids1 := []TSID{{MetricID: 1234}, {MetricID: 1234}}
@@ -319,11 +317,11 @@ func TestPartSearchTwoRowsOneTSID(t *testing.T) {
 	r.TSID.MetricID = 1234
 
 	r.Timestamp = 100
-	r.Value = 345
+	r.Value = []byte("345")
 	rows = append(rows, r)
 
 	r.Timestamp = 200
-	r.Value = 456
+	r.Value = []byte("345")
 	rows = append(rows, r)
 
 	p := newTestPart(rows)
@@ -493,7 +491,7 @@ func TestPartSearchTwoRowsOneTSID(t *testing.T) {
 				MetricID: 1234,
 			},
 			Timestamps: []int64{100, 200},
-			Values:     []float64{345, 456},
+			Values:     [][]byte{[]byte("345"), []byte("456")},
 		}}
 
 		tsids1 := []TSID{{MetricID: 1234}}
@@ -533,7 +531,7 @@ func TestPartSearchTwoRowsOneTSID(t *testing.T) {
 					MetricID: 1234,
 				},
 				Timestamps: []int64{100},
-				Values:     []float64{345},
+				Values:     [][]byte{[]byte("345")},
 			}}
 			testPartSearch(t, p, tsids1, tr, rbs)
 			testPartSearch(t, p, tsids2, tr, rbs)
@@ -551,7 +549,7 @@ func TestPartSearchTwoRowsOneTSID(t *testing.T) {
 					MetricID: 1234,
 				},
 				Timestamps: []int64{100},
-				Values:     []float64{345},
+				Values:     [][]byte{[]byte("345")},
 			}}
 			testPartSearch(t, p, tsids1, tr, rbs)
 			testPartSearch(t, p, tsids2, tr, rbs)
@@ -569,7 +567,7 @@ func TestPartSearchTwoRowsOneTSID(t *testing.T) {
 					MetricID: 1234,
 				},
 				Timestamps: []int64{200},
-				Values:     []float64{456},
+				Values:     [][]byte{[]byte("456")},
 			}}
 			testPartSearch(t, p, tsids1, tr, rbs)
 			testPartSearch(t, p, tsids2, tr, rbs)
@@ -587,7 +585,7 @@ func TestPartSearchTwoRowsOneTSID(t *testing.T) {
 					MetricID: 1234,
 				},
 				Timestamps: []int64{200},
-				Values:     []float64{456},
+				Values:     [][]byte{[]byte("456")},
 			}}
 			testPartSearch(t, p, tsids1, tr, rbs)
 			testPartSearch(t, p, tsids2, tr, rbs)
@@ -648,12 +646,12 @@ func TestPartSearchTwoRowsTwoTSID(t *testing.T) {
 
 	r.TSID.MetricID = 1234
 	r.Timestamp = 100
-	r.Value = 345
+	r.Value = []byte("345")
 	rows = append(rows, r)
 
 	r.TSID.MetricID = 2345
 	r.Timestamp = 200
-	r.Value = 456
+	r.Value = []byte("456")
 	rows = append(rows, r)
 
 	p := newTestPart(rows)
@@ -869,7 +867,7 @@ func TestPartSearchTwoRowsTwoTSID(t *testing.T) {
 				MetricID: 1234,
 			},
 			Timestamps: []int64{100},
-			Values:     []float64{345},
+			Values:     [][]byte{[]byte("345")},
 		}}
 
 		tsids1 := []TSID{{MetricID: 1234}}
@@ -928,7 +926,7 @@ func TestPartSearchTwoRowsTwoTSID(t *testing.T) {
 				MetricID: 2345,
 			},
 			Timestamps: []int64{200},
-			Values:     []float64{456},
+			Values:     [][]byte{[]byte("456")},
 		}}
 
 		tsids1 := []TSID{{MetricID: 2345}}
@@ -988,14 +986,14 @@ func TestPartSearchTwoRowsTwoTSID(t *testing.T) {
 					MetricID: 1234,
 				},
 				Timestamps: []int64{100},
-				Values:     []float64{345},
+				Values:     [][]byte{[]byte("345")},
 			},
 			{
 				TSID: TSID{
 					MetricID: 2345,
 				},
 				Timestamps: []int64{200},
-				Values:     []float64{456},
+				Values:     [][]byte{[]byte("456")},
 			},
 		}
 
@@ -1036,7 +1034,7 @@ func TestPartSearchTwoRowsTwoTSID(t *testing.T) {
 					MetricID: 1234,
 				},
 				Timestamps: []int64{100},
-				Values:     []float64{345},
+				Values:     [][]byte{[]byte("345")},
 			}}
 			testPartSearch(t, p, tsids1, tr, rbs)
 			testPartSearch(t, p, tsids2, tr, rbs)
@@ -1054,7 +1052,7 @@ func TestPartSearchTwoRowsTwoTSID(t *testing.T) {
 					MetricID: 1234,
 				},
 				Timestamps: []int64{100},
-				Values:     []float64{345},
+				Values:     [][]byte{[]byte("345")},
 			}}
 			testPartSearch(t, p, tsids1, tr, rbs)
 			testPartSearch(t, p, tsids2, tr, rbs)
@@ -1072,7 +1070,7 @@ func TestPartSearchTwoRowsTwoTSID(t *testing.T) {
 					MetricID: 2345,
 				},
 				Timestamps: []int64{200},
-				Values:     []float64{456},
+				Values:     [][]byte{[]byte("456")},
 			}}
 			testPartSearch(t, p, tsids1, tr, rbs)
 			testPartSearch(t, p, tsids2, tr, rbs)
@@ -1090,7 +1088,7 @@ func TestPartSearchTwoRowsTwoTSID(t *testing.T) {
 					MetricID: 2345,
 				},
 				Timestamps: []int64{200},
-				Values:     []float64{456},
+				Values:     [][]byte{[]byte("456")},
 			}}
 			testPartSearch(t, p, tsids1, tr, rbs)
 			testPartSearch(t, p, tsids2, tr, rbs)
@@ -1161,7 +1159,7 @@ func testPartSearchMultiRowsOneTSID(t *testing.T, rowsCount int) {
 	r.TSID.MetricID = 1111
 	for i := 0; i < rowsCount; i++ {
 		r.Timestamp = int64(rand.NormFloat64() * 1e6)
-		r.Value = float64(int(rand.NormFloat64() * 1e5))
+		r.Value = []byte("hi faceair")
 		rows = append(rows, r)
 	}
 
@@ -1197,7 +1195,7 @@ func testPartSearchMultiRowsMultiTSIDs(t *testing.T, rowsCount, tsidsCount int) 
 	for i := 0; i < rowsCount; i++ {
 		r.TSID.MetricID = uint64(rand.Intn(tsidsCount))
 		r.Timestamp = int64(rand.NormFloat64() * 1e6)
-		r.Value = float64(int(rand.NormFloat64() * 1e5))
+		r.Value = []byte("hi faceair")
 		rows = append(rows, r)
 	}
 
@@ -1300,7 +1298,7 @@ func newTestRawBlock(b *Block, tr TimeRange) rawBlock {
 		panic(fmt.Errorf("cannot unmarshal block data: %w", err))
 	}
 	var rb rawBlock
-	var values []int64
+	var values [][]byte
 	for b.nextRow() {
 		timestamp := b.timestamps[b.nextIdx-1]
 		value := b.values[b.nextIdx-1]
@@ -1314,7 +1312,7 @@ func newTestRawBlock(b *Block, tr TimeRange) rawBlock {
 		values = append(values, value)
 	}
 	rb.TSID = b.bh.TSID
-	rb.Values = decimal.AppendDecimalToFloat(rb.Values[:0], values, b.bh.Scale)
+	rb.Values = append(rb.Values[:0], values...)
 	return rb
 }
 
@@ -1356,7 +1354,7 @@ func (rbs *rawBlockSort) Less(i, j int) bool {
 	if rb.Timestamps[i] > rb.Timestamps[j] {
 		return false
 	}
-	return rb.Values[i] < rb.Values[j]
+	return string(rb.Values[i]) < string(rb.Values[j])
 }
 func (rbs *rawBlockSort) Swap(i, j int) {
 	rb := rbs.rb
@@ -1384,7 +1382,7 @@ func getTestExpectedRawBlocks(rowsOriginal []rawRow, tsids []TSID, tr TimeRange)
 		if a.Timestamp > b.Timestamp {
 			return false
 		}
-		return a.Value < b.Value
+		return string(a.Value) < string(b.Value)
 	})
 
 	tsidsMap := make(map[TSID]bool)

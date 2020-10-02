@@ -29,13 +29,6 @@ type blockHeader struct {
 	// This is the last timestamp, since rows are sorted by timestamps.
 	MaxTimestamp int64
 
-	// FirstValue is the first value in the block.
-	//
-	// It is stored here for better compression level, since usually
-	// the first value significantly differs from subsequent values
-	// which may be delta-encoded.
-	FirstValue int64
-
 	// TimestampsBlockOffset is the offset in bytes for a block
 	// with timestamps in timestamps file.
 	TimestampsBlockOffset uint64
@@ -54,9 +47,6 @@ type blockHeader struct {
 	//
 	// The block must contain at least one row.
 	RowsCount uint32
-
-	// Scale is the 10^Scale multiplier for values in the block.
-	Scale int16
 
 	// TimestampsMarshalType is the marshal type used for marshaling
 	// a block with timestamps.
@@ -102,13 +92,11 @@ func (bh *blockHeader) Marshal(dst []byte) []byte {
 	dst = bh.TSID.Marshal(dst)
 	dst = encoding.MarshalInt64(dst, bh.MinTimestamp)
 	dst = encoding.MarshalInt64(dst, bh.MaxTimestamp)
-	dst = encoding.MarshalInt64(dst, bh.FirstValue)
 	dst = encoding.MarshalUint64(dst, bh.TimestampsBlockOffset)
 	dst = encoding.MarshalUint64(dst, bh.ValuesBlockOffset)
 	dst = encoding.MarshalUint32(dst, bh.TimestampsBlockSize)
 	dst = encoding.MarshalUint32(dst, bh.ValuesBlockSize)
 	dst = encoding.MarshalUint32(dst, bh.RowsCount)
-	dst = encoding.MarshalInt16(dst, bh.Scale)
 	dst = append(dst, byte(bh.TimestampsMarshalType), byte(bh.ValuesMarshalType), bh.PrecisionBits)
 	return dst
 }
@@ -129,8 +117,6 @@ func (bh *blockHeader) Unmarshal(src []byte) ([]byte, error) {
 	src = src[8:]
 	bh.MaxTimestamp = encoding.UnmarshalInt64(src)
 	src = src[8:]
-	bh.FirstValue = encoding.UnmarshalInt64(src)
-	src = src[8:]
 	bh.TimestampsBlockOffset = encoding.UnmarshalUint64(src)
 	src = src[8:]
 	bh.ValuesBlockOffset = encoding.UnmarshalUint64(src)
@@ -141,8 +127,6 @@ func (bh *blockHeader) Unmarshal(src []byte) ([]byte, error) {
 	src = src[4:]
 	bh.RowsCount = encoding.UnmarshalUint32(src)
 	src = src[4:]
-	bh.Scale = encoding.UnmarshalInt16(src)
-	src = src[2:]
 	bh.TimestampsMarshalType = encoding.MarshalType(src[0])
 	src = src[1:]
 	bh.ValuesMarshalType = encoding.MarshalType(src[0])

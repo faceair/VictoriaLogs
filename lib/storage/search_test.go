@@ -120,7 +120,7 @@ func testSearchGeneric(t *testing.T, forcePerDayInvertedIndex bool) {
 		mr := &mrs[i]
 		mr.MetricNameRaw = mn.marshalRaw(nil)
 		mr.Timestamp = startTimestamp + int64(i)
-		mr.Value = float64(i)
+		mr.Value = []byte{byte(i)}
 
 		blockRowsCount++
 		if blockRowsCount == rowsPerBlock {
@@ -294,7 +294,7 @@ func mrsToString(mrs []MetricRow) string {
 	fmt.Fprintf(&bb, "len=%d\n", len(mrs))
 	for i := range mrs {
 		mr := &mrs[i]
-		fmt.Fprintf(&bb, "[%q, Timestamp=%d, Value=%f]\n", mr.MetricNameRaw, mr.Timestamp, mr.Value)
+		fmt.Fprintf(&bb, "[%q, Timestamp=%d, Value=%v]\n", mr.MetricNameRaw, mr.Timestamp, mr.Value)
 	}
 	return bb.String()
 }

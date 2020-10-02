@@ -25,7 +25,7 @@ func benchmarkTableAddRows(b *testing.B, rowsPerInsert, tsidsCount int) {
 	rows := make([]rawRow, rowsPerInsert)
 	startTimestamp := timestampFromTime(time.Now())
 	timestamp := startTimestamp
-	value := float64(100)
+	value := []byte("hi faceair")
 	for i := 0; i < rowsPerInsert; i++ {
 		r := &rows[i]
 		r.PrecisionBits = defaultPrecisionBits
@@ -34,7 +34,6 @@ func benchmarkTableAddRows(b *testing.B, rowsPerInsert, tsidsCount int) {
 		r.Value = value
 
 		timestamp += 10 + rand.Int63n(2)
-		value += float64(int(rand.NormFloat64() * 5))
 	}
 	timestampDelta := timestamp - startTimestamp
 
@@ -66,7 +65,7 @@ func benchmarkTableAddRows(b *testing.B, rowsPerInsert, tsidsCount int) {
 				for k := range rowsCopy {
 					r := &rowsCopy[k]
 					r.Timestamp += int64(goroutineID)
-					r.Value += float64(goroutineID)
+					r.Value = []byte{byte(goroutineID)}
 				}
 
 				for range workCh {
@@ -74,7 +73,6 @@ func benchmarkTableAddRows(b *testing.B, rowsPerInsert, tsidsCount int) {
 					for q := range rowsCopy {
 						r := &rowsCopy[q]
 						r.Timestamp += timestampDelta
-						r.Value++
 					}
 					// Add updated rowsCopy.
 					if err := tb.AddRows(rowsCopy); err != nil {

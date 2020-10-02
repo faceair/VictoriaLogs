@@ -49,7 +49,7 @@ func benchmarkStorageAddRows(b *testing.B, rowsPerBatch int) {
 				mr := &mrs[i]
 				mr.MetricNameRaw = mn.marshalRaw(mr.MetricNameRaw[:0])
 				mr.Timestamp = int64(offset + i)
-				mr.Value = float64(offset + i)
+				mr.Value = []byte{byte(offset + i)}
 			}
 			if err := s.AddRows(mrs, defaultPrecisionBits); err != nil {
 				panic(fmt.Errorf("cannot add rows to storage: %w", err))

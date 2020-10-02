@@ -53,7 +53,7 @@ var benchTwoSourcesWorstCaseMPS = func() []*inmemoryPart {
 	var r rawRow
 	r.PrecisionBits = defaultPrecisionBits
 	for i := 0; i < maxRowsPerBlock/2-1; i++ {
-		r.Value = rand.NormFloat64()
+		r.Value = []byte("hi faceair")
 		r.Timestamp = rand.Int63n(1e12)
 		rows = append(rows, r)
 	}
@@ -86,7 +86,7 @@ var benchFourSourcesWorstCaseMPS = func() []*inmemoryPart {
 	var r rawRow
 	r.PrecisionBits = defaultPrecisionBits
 	for i := 0; i < maxRowsPerBlock/2-1; i++ {
-		r.Value = rand.NormFloat64()
+		r.Value = []byte("hi faceair")
 		r.Timestamp = rand.Int63n(1e12)
 		rows = append(rows, r)
 	}

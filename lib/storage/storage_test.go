@@ -455,7 +455,7 @@ func testStorageRandTimestamps(s *Storage) error {
 				}
 				timestamp = ts.Interface().(int64)
 			}
-			value := rnd.NormFloat64() * 1e12
+			value := []byte{byte(rnd.NormFloat64())}
 
 			mr := MetricRow{
 				MetricNameRaw: metricNameRaw,
@@ -584,7 +584,7 @@ func testStorageDeleteMetrics(s *Storage, workerNum int) error {
 
 		for j := 0; j < rowsPerMetric; j++ {
 			timestamp := rand.Int63n(1e10)
-			value := rand.NormFloat64() * 1e6
+			value := []byte{byte(rand.NormFloat64())}
 
 			mr := MetricRow{
 				MetricNameRaw: metricNameRaw,
@@ -764,7 +764,7 @@ func testStorageAddRows(s *Storage) error {
 			mn.MetricGroup = []byte(fmt.Sprintf("metric_%d", rand.Intn(100)))
 			metricNameRaw := mn.marshalRaw(nil)
 			timestamp := rand.Int63n(1e10)
-			value := rand.NormFloat64() * 1e6
+			value := []byte{byte(rand.NormFloat64())}
 
 			mr := MetricRow{
 				MetricNameRaw: metricNameRaw,
@@ -911,7 +911,7 @@ func testStorageAddMetrics(s *Storage, workerNum int) error {
 		mn.MetricGroup = []byte(fmt.Sprintf("metric_%d_%d", workerNum, rand.Intn(10)))
 		metricNameRaw := mn.marshalRaw(nil)
 		timestamp := rand.Int63n(1e10)
-		value := rand.NormFloat64() * 1e6
+		value := []byte{byte(rand.NormFloat64())}
 
 		mr := MetricRow{
 			MetricNameRaw: metricNameRaw,

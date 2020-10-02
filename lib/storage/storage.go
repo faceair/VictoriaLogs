@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"math"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -1062,7 +1061,7 @@ type MetricRow struct {
 	MetricNameRaw []byte
 
 	Timestamp int64
-	Value     float64
+	Value     []byte
 }
 
 // CopyFrom copies src to mr.
@@ -1079,7 +1078,7 @@ func (mr *MetricRow) String() string {
 	if err := mn.unmarshalRaw(mr.MetricNameRaw); err == nil {
 		metricName = mn.String()
 	}
-	return fmt.Sprintf("MetricName=%s, Timestamp=%d, Value=%f\n", metricName, mr.Timestamp, mr.Value)
+	return fmt.Sprintf("MetricName=%s, Timestamp=%d, Value=%v\n", metricName, mr.Timestamp, mr.Value)
 }
 
 // Marshal appends marshaled mr to dst and returns the result.
@@ -1088,10 +1087,10 @@ func (mr *MetricRow) Marshal(dst []byte) []byte {
 }
 
 // MarshalMetricRow marshals MetricRow data to dst and returns the result.
-func MarshalMetricRow(dst []byte, metricNameRaw []byte, timestamp int64, value float64) []byte {
+func MarshalMetricRow(dst []byte, metricNameRaw []byte, timestamp int64, value []byte) []byte {
 	dst = encoding.MarshalBytes(dst, metricNameRaw)
 	dst = encoding.MarshalUint64(dst, uint64(timestamp))
-	dst = encoding.MarshalUint64(dst, math.Float64bits(value))
+	dst = encoding.MarshalBytes(dst, value)
 	return dst
 }
 
@@ -1113,8 +1112,11 @@ func (mr *MetricRow) Unmarshal(src []byte) ([]byte, error) {
 	if len(tail) < 8 {
 		return tail, fmt.Errorf("cannot unmarshal Value: want %d bytes; have %d bytes", 8, len(tail))
 	}
-	value := encoding.UnmarshalUint64(tail)
-	mr.Value = math.Float64frombits(value)
+	tail, value, err := encoding.UnmarshalBytes(tail)
+	if err != nil {
+		return tail, fmt.Errorf("cannot unmarshal value: %w", err)
+	}
+	mr.Value = value
 	tail = tail[8:]
 
 	return tail, nil
@@ -1198,7 +1200,7 @@ func (s *Storage) add(rows []rawRow, mrs []MetricRow, precisionBits uint8) ([]ra
 	var firstWarn error
 	for i := range mrs {
 		mr := &mrs[i]
-		if math.IsNaN(mr.Value) {
+		if len(mr.Value) == 0 {
 			// Just skip NaNs, since the underlying encoding
 			// doesn't know how to work with them.
 			continue

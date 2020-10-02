@@ -10,7 +10,7 @@ import (
 func TestBlockStreamReaderSingleRow(t *testing.T) {
 	rows := []rawRow{{
 		Timestamp:     12334545,
-		Value:         1.2345,
+		Value:         []byte("hi faceair"),
 		PrecisionBits: defaultPrecisionBits,
 	}}
 	testBlocksStreamReader(t, rows, 1)
@@ -21,7 +21,7 @@ func TestBlockStreamReaderSingleBlockManyRows(t *testing.T) {
 	var r rawRow
 	r.PrecisionBits = defaultPrecisionBits
 	for i := 0; i < maxRowsPerBlock; i++ {
-		r.Value = rand.Float64()*1e9 - 5e8
+		r.Value = []byte("hi faceair")
 		r.Timestamp = int64(i * 1e9)
 		rows = append(rows, r)
 	}
@@ -33,7 +33,7 @@ func TestBlockStreamReaderSingleTSIDManyBlocks(t *testing.T) {
 	var r rawRow
 	r.PrecisionBits = 1
 	for i := 0; i < 5*maxRowsPerBlock; i++ {
-		r.Value = rand.NormFloat64() * 1e4
+		r.Value = []byte("hi faceair")
 		r.Timestamp = int64(rand.NormFloat64() * 1e9)
 		rows = append(rows, r)
 	}
@@ -46,7 +46,7 @@ func TestBlockStreamReaderManyTSIDSingleRow(t *testing.T) {
 	r.PrecisionBits = defaultPrecisionBits
 	for i := 0; i < 1000; i++ {
 		r.TSID.MetricID = uint64(i)
-		r.Value = rand.Float64()*1e9 - 5e8
+		r.Value = []byte("hi faceair")
 		r.Timestamp = int64(i * 1e9)
 		rows = append(rows, r)
 	}
@@ -60,7 +60,7 @@ func TestBlockStreamReaderManyTSIDManyRows(t *testing.T) {
 	const blocks = 123
 	for i := 0; i < 3210; i++ {
 		r.TSID.MetricID = uint64((1e9 - i) % blocks)
-		r.Value = rand.Float64()
+		r.Value = []byte("hi faceair")
 		r.Timestamp = int64(rand.Float64() * 1e9)
 		rows = append(rows, r)
 	}
@@ -74,7 +74,7 @@ func TestBlockStreamReaderReadConcurrent(t *testing.T) {
 	const blocks = 123
 	for i := 0; i < 3210; i++ {
 		r.TSID.MetricID = uint64((1e9 - i) % blocks)
-		r.Value = rand.Float64()
+		r.Value = []byte("hi faceair")
 		r.Timestamp = int64(rand.Float64() * 1e9)
 		rows = append(rows, r)
 	}

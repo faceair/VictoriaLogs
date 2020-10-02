@@ -93,7 +93,7 @@ func createBenchTable(b *testing.B, path string, startTimestamp int64, rowsPerIn
 					r.PrecisionBits = defaultPrecisionBits
 					r.TSID.MetricID = uint64(rand.Intn(tsidsCount) + 1)
 					r.Timestamp = int64(ts)
-					r.Value = value
+					r.Value = []byte("hi faceair")
 				}
 				if err := tb.AddRows(rows); err != nil {
 					panic(fmt.Errorf("cannot add %d rows: %w", rowsPerInsert, err))

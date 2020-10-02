@@ -84,6 +84,16 @@ func extendInt16sCapacity(dst []int16, additionalItems int) []int16 {
 	return dst[:dstLen]
 }
 
+// ExtendBytesArrayCapacity extends dst capacity to hold additionalItems
+// and returns the extended dst.
+func ExtendBytesArrayCapacity(dst [][]byte, additionalItems int) [][]byte {
+	dstLen := len(dst)
+	if n := dstLen + additionalItems - cap(dst); n > 0 {
+		dst = append(dst[:cap(dst)], make([][]byte, n)...)
+	}
+	return dst[:dstLen]
+}
+
 // AppendDecimalToFloat converts each item in va to f=v*10^e, appends it
 // to dst and returns the resulting dst.
 func AppendDecimalToFloat(dst []float64, va []int64, e int16) []float64 {

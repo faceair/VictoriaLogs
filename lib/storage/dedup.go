@@ -47,7 +47,7 @@ func DeduplicateSamples(srcTimestamps []int64, srcValues []float64) ([]int64, []
 	return dstTimestamps, dstValues
 }
 
-func deduplicateSamplesDuringMerge(srcTimestamps, srcValues []int64) ([]int64, []int64) {
+func deduplicateSamplesDuringMerge(srcTimestamps []int64, srcValues [][]byte) ([]int64, [][]byte) {
 	if minScrapeInterval <= 0 {
 		return srcTimestamps, srcValues
 	}

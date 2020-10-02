@@ -141,7 +141,7 @@ func testPartitionSearchEx(t *testing.T, ptt int64, tr TimeRange, partsCount, ma
 		for j := 0; j < rowsCount; j++ {
 			r.TSID.MetricID = uint64(rand.Intn(tsidsCount))
 			r.Timestamp = timestamp
-			r.Value = float64(int(rand.NormFloat64() * 1e5))
+			r.Value = []byte("hi faceair")
 
 			timestamp += int64(rand.Intn(1e4))
 			if timestamp > ptr.MaxTimestamp {

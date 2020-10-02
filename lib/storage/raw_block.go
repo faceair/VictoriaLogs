@@ -5,7 +5,7 @@ type rawBlock struct {
 	TSID TSID
 
 	Timestamps []int64
-	Values     []float64
+	Values     [][]byte
 }
 
 // Reset resets rb.

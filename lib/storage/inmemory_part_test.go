@@ -14,7 +14,7 @@ func TestInmemoryPartInitFromRows(t *testing.T) {
 				MetricID: 234,
 			},
 			Timestamp:     123,
-			Value:         456.789,
+			Value:         []byte("hi faceair"),
 			PrecisionBits: defaultPrecisionBits,
 		},
 	}, 1)
@@ -28,7 +28,7 @@ func TestInmemoryPartInitFromRows(t *testing.T) {
 	r.PrecisionBits = defaultPrecisionBits
 	for i := uint64(0); i < 1e4; i++ {
 		r.Timestamp = int64(rand.NormFloat64() * 1e7)
-		r.Value = rand.NormFloat64() * 100
+		r.Value = []byte("hi faceair")
 
 		rows = append(rows, r)
 	}
@@ -40,7 +40,7 @@ func TestInmemoryPartInitFromRows(t *testing.T) {
 		initTestTSID(&r.TSID)
 		r.TSID.MetricID = uint64(i)
 		r.Timestamp = int64(rand.NormFloat64() * 1e7)
-		r.Value = rand.NormFloat64() * 100
+		r.Value = []byte("hi faceair")
 		r.PrecisionBits = uint8(i%64) + 1
 
 		rows = append(rows, r)

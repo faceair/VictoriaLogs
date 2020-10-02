@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/VictoriaMetrics/VictoriaMetrics/lib/decimal"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/logger"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/uint64set"
 )
@@ -102,7 +101,6 @@ func mergeBlockStreamsInternal(ph *partHeader, bsw *blockStreamWriter, bsm *bloc
 		}
 		tmpBlock.Reset()
 		tmpBlock.bh.TSID = bsm.Block.bh.TSID
-		tmpBlock.bh.Scale = bsm.Block.bh.Scale
 		tmpBlock.bh.PrecisionBits = minUint8(pendingBlock.bh.PrecisionBits, bsm.Block.bh.PrecisionBits)
 		mergeBlocks(tmpBlock, pendingBlock, bsm.Block)
 		if len(tmpBlock.timestamps) <= maxRowsPerBlock {
@@ -188,10 +186,6 @@ func unmarshalAndCalibrateScale(b1, b2 *Block) error {
 	if err := b2.UnmarshalData(); err != nil {
 		return err
 	}
-
-	scale := decimal.CalibrateScale(b1.values, b1.bh.Scale, b2.values, b2.bh.Scale)
-	b1.bh.Scale = scale
-	b2.bh.Scale = scale
 	return nil
 }
 

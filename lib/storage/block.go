@@ -6,7 +6,6 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/VictoriaMetrics/VictoriaMetrics/lib/decimal"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/encoding"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/logger"
 )
@@ -27,7 +26,7 @@ type Block struct {
 	nextIdx int
 
 	timestamps []int64
-	values     []int64
+	values     [][]byte
 
 	// Marshaled representation of block header.
 	headerData []byte
@@ -89,10 +88,9 @@ func (b *Block) RowsCount() int {
 }
 
 // Init initializes b with the given tsid, timestamps, values and scale.
-func (b *Block) Init(tsid *TSID, timestamps, values []int64, scale int16, precisionBits uint8) {
+func (b *Block) Init(tsid *TSID, timestamps []int64, values [][]byte, precisionBits uint8) {
 	b.Reset()
 	b.bh.TSID = *tsid
-	b.bh.Scale = scale
 	b.bh.PrecisionBits = precisionBits
 	b.timestamps = append(b.timestamps[:0], timestamps...)
 	b.values = append(b.values[:0], values...)
@@ -130,9 +128,6 @@ func (b *Block) assertUnmarshaled() {
 func (b *Block) assertMergeable(ib *Block) {
 	if b.bh.TSID.MetricID != ib.bh.TSID.MetricID {
 		logger.Panicf("BUG: unequal TSID: %q vs %q", &b.bh.TSID, &ib.bh.TSID)
-	}
-	if b.bh.Scale != ib.bh.Scale {
-		logger.Panicf("BUG: unequal Scale: %d vs %d", b.bh.Scale, ib.bh.Scale)
 	}
 }
 
@@ -212,7 +207,7 @@ func (b *Block) MarshalData(timestampsBlockOffset, valuesBlockOffset uint64) ([]
 		logger.Panicf("BUG: the number of values must match the number of timestamps; got %d vs %d", len(values), len(timestamps))
 	}
 
-	b.valuesData, b.bh.ValuesMarshalType, b.bh.FirstValue = encoding.MarshalValues(b.valuesData[:0], values, b.bh.PrecisionBits)
+	b.valuesData, b.bh.ValuesMarshalType = encoding.MarshalValues(b.valuesData[:0], values)
 	b.bh.ValuesBlockOffset = valuesBlockOffset
 	b.bh.ValuesBlockSize = uint32(len(b.valuesData))
 	b.values = b.values[:0]
@@ -262,7 +257,7 @@ func (b *Block) UnmarshalData() error {
 	}
 	b.timestampsData = b.timestampsData[:0]
 
-	b.values, err = encoding.UnmarshalValues(b.values[:0], b.valuesData, b.bh.ValuesMarshalType, b.bh.FirstValue, int(b.bh.RowsCount))
+	b.values, err = encoding.UnmarshalValues(b.values[:0], b.valuesData, b.bh.ValuesMarshalType, int(b.bh.RowsCount))
 	if err != nil {
 		return err
 	}
@@ -280,14 +275,14 @@ func (b *Block) UnmarshalData() error {
 // AppendRowsWithTimeRangeFilter filters samples from b according to tr and appends them to dst*.
 //
 // It is expected that UnmarshalData has been already called on b.
-func (b *Block) AppendRowsWithTimeRangeFilter(dstTimestamps []int64, dstValues []float64, tr TimeRange) ([]int64, []float64) {
+func (b *Block) AppendRowsWithTimeRangeFilter(dstTimestamps []int64, dstValues [][]byte, tr TimeRange) ([]int64, [][]byte) {
 	timestamps, values := b.filterTimestamps(tr)
 	dstTimestamps = append(dstTimestamps, timestamps...)
-	dstValues = decimal.AppendDecimalToFloat(dstValues, values, b.bh.Scale)
+	dstValues = append(dstValues, values...)
 	return dstTimestamps, dstValues
 }
 
-func (b *Block) filterTimestamps(tr TimeRange) ([]int64, []int64) {
+func (b *Block) filterTimestamps(tr TimeRange) ([]int64, [][]byte) {
 	timestamps := b.timestamps
 
 	// Skip timestamps smaller than tr.MinTimestamp.
@@ -315,9 +310,7 @@ func (b *Block) MarshalPortable(dst []byte) []byte {
 	b.MarshalData(0, 0)
 
 	dst = encoding.MarshalVarInt64(dst, b.bh.MinTimestamp)
-	dst = encoding.MarshalVarInt64(dst, b.bh.FirstValue)
 	dst = encoding.MarshalVarUint64(dst, uint64(b.bh.RowsCount))
-	dst = encoding.MarshalVarInt64(dst, int64(b.bh.Scale))
 	dst = append(dst, byte(b.bh.TimestampsMarshalType))
 	dst = append(dst, byte(b.bh.ValuesMarshalType))
 	dst = encoding.MarshalBytes(dst, b.timestampsData)
@@ -338,11 +331,6 @@ func (b *Block) UnmarshalPortable(src []byte) ([]byte, error) {
 		return src, fmt.Errorf("cannot unmarshal firstTimestamp: %w", err)
 	}
 	b.bh.MinTimestamp = firstTimestamp
-	src, firstValue, err := encoding.UnmarshalVarInt64(src)
-	if err != nil {
-		return src, fmt.Errorf("cannot unmarshal firstValue: %w", err)
-	}
-	b.bh.FirstValue = firstValue
 	src, rowsCount, err := encoding.UnmarshalVarUint64(src)
 	if err != nil {
 		return src, fmt.Errorf("cannot unmarshal rowsCount: %w", err)
@@ -351,17 +339,6 @@ func (b *Block) UnmarshalPortable(src []byte) ([]byte, error) {
 		return src, fmt.Errorf("got too big rowsCount=%d; it mustn't exceed %d", rowsCount, uint32(math.MaxUint32))
 	}
 	b.bh.RowsCount = uint32(rowsCount)
-	src, scale, err := encoding.UnmarshalVarInt64(src)
-	if err != nil {
-		return src, fmt.Errorf("cannot unmarshal scale: %w", err)
-	}
-	if scale < math.MinInt16 {
-		return src, fmt.Errorf("got too small scale=%d; it mustn't be smaller than %d", scale, math.MinInt16)
-	}
-	if scale > math.MaxInt16 {
-		return src, fmt.Errorf("got too big scale=%d; it mustn't exceeed %d", scale, math.MaxInt16)
-	}
-	b.bh.Scale = int16(scale)
 	if len(src) < 1 {
 		return src, fmt.Errorf("cannot unmarshal marshalType for timestamps from %d bytes; need at least %d bytes", len(src), 1)
 	}
