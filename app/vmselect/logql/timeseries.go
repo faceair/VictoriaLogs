@@ -16,7 +16,7 @@ import (
 
 type timeseries struct {
 	MetricName storage.MetricName
-	Values     []float64
+	Values     [][]byte
 	Timestamps []int64
 
 	// Whether the timeseries may be re-used.
@@ -169,7 +169,7 @@ func (ts *timeseries) marshalFastNoTimestamps(dst []byte) []byte {
 	// during marshalFastTimestamps.
 	var valuesBuf []byte
 	if len(ts.Values) > 0 {
-		valuesBuf = float64ToByteSlice(ts.Values)
+		valuesBuf = bytesArrayToByteSlice(ts.Values)
 	}
 	dst = append(dst, valuesBuf...)
 	return dst
@@ -229,12 +229,12 @@ func (ts *timeseries) unmarshalFastNoTimestamps(src []byte) ([]byte, error) {
 	if len(src) < bufSize {
 		return src, fmt.Errorf("cannot unmarshal values; got %d bytes; want at least %d bytes", len(src), bufSize)
 	}
-	ts.Values = byteSliceToFloat64(src[:bufSize])
+	ts.Values = byteSliceToBytesArray(src[:bufSize])
 
 	return src[bufSize:], nil
 }
 
-func float64ToByteSlice(a []float64) (b []byte) {
+func bytesArrayToByteSlice(a [][]byte) (b []byte) {
 	sh := (*reflect.SliceHeader)(unsafe.Pointer(&b))
 	sh.Data = uintptr(unsafe.Pointer(&a[0]))
 	sh.Len = len(a) * int(unsafe.Sizeof(a[0]))
@@ -258,7 +258,7 @@ func byteSliceToInt64(b []byte) (a []int64) {
 	return
 }
 
-func byteSliceToFloat64(b []byte) (a []float64) {
+func byteSliceToBytesArray(b []byte) (a [][]byte) {
 	sh := (*reflect.SliceHeader)(unsafe.Pointer(&a))
 	sh.Data = uintptr(unsafe.Pointer(&b[0]))
 	sh.Len = len(b) / int(unsafe.Sizeof(a[0]))

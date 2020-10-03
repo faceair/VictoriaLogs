@@ -38,8 +38,7 @@ var (
 	minScrapeInterval = flag.Duration("dedup.minScrapeInterval", 0, "Remove superflouos samples from time series if they are located closer to each other than this duration. "+
 		"This may be useful for reducing overhead when multiple identically configured Prometheus instances write data to the same VictoriaMetrics. "+
 		"Deduplication is disabled if the -dedup.minScrapeInterval is 0")
-	resetCacheAuthKey = flag.String("search.resetCacheAuthKey", "", "Optional authKey for resetting rollup cache via /internal/resetRollupResultCache call")
-	storageNodes      = flagutil.NewArray("storageNode", "Addresses of vmstorage nodes; usage: -storageNode=vmstorage-host1:8401 -storageNode=vmstorage-host2:8401")
+	storageNodes = flagutil.NewArray("storageNode", "Addresses of vmstorage nodes; usage: -storageNode=vmstorage-host1:8401 -storageNode=vmstorage-host2:8401")
 )
 
 func getDefaultMaxConcurrentRequests() int {
@@ -77,10 +76,8 @@ func main() {
 		tmpDataPath := *cacheDataPath + "/tmp"
 		fs.RemoveDirContents(tmpDataPath)
 		netstorage.InitTmpBlocksDir(tmpDataPath)
-		logql.InitRollupResultCache(*cacheDataPath + "/rollupResult")
 	} else {
 		netstorage.InitTmpBlocksDir("")
-		logql.InitRollupResultCache("")
 	}
 	concurrencyCh = make(chan struct{}, *maxConcurrentRequests)
 
@@ -101,9 +98,7 @@ func main() {
 	logger.Infof("shutting down neststorage...")
 	startTime = time.Now()
 	netstorage.Stop()
-	if len(*cacheDataPath) > 0 {
-		logql.StopRollupResultCache()
-	}
+
 	logger.Infof("successfully stopped netstorage in %.3f seconds", time.Since(startTime).Seconds())
 
 	fs.MustStopDirRemover()
@@ -159,14 +154,6 @@ func requestHandler(w http.ResponseWriter, r *http.Request) bool {
 	}
 
 	path := strings.Replace(r.URL.Path, "//", "/", -1)
-	if path == "/internal/resetRollupResultCache" {
-		if len(*resetCacheAuthKey) > 0 && r.FormValue("authKey") != *resetCacheAuthKey {
-			sendPrometheusError(w, r, fmt.Errorf("invalid authKey=%q for %q", r.FormValue("authKey"), path))
-			return true
-		}
-		logql.ResetRollupResultCache()
-		return true
-	}
 
 	p, err := httpserver.ParsePath(path)
 	if err != nil {

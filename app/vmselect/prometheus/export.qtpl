@@ -11,7 +11,7 @@
 	{% code writeprometheusMetricName(bb, xb.mn) %}
 	{% for i, ts := range xb.timestamps %}
 		{%z= bb.B %}{% space %}
-		{%f= xb.values[i] %}{% space %}
+		{%z= xb.values[i] %}{% space %}
 		{%dl= ts %}{% newline %}
 	{% endfor %}
 	{% code quicktemplate.ReleaseByteBuffer(bb) %}
@@ -24,10 +24,10 @@
 		"values":[
 			{% if len(xb.values) > 0 %}
 				{% code values := xb.values %}
-				{%f= values[0] %}
+				{%z= values[0] %}
 				{% code values = values[1:] %}
 				{% for _, v := range values %}
-					,{%f= v %}
+					,{%z= v %}
 				{% endfor %}
 			{% endif %}
 		],

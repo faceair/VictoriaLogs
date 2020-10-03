@@ -44,7 +44,7 @@ func StreamExportPrometheusLine(qw422016 *qt422016.Writer, xb *exportBlock) {
 //line app/vmselect/prometheus/export.qtpl:13
 		qw422016.N().S(` `)
 //line app/vmselect/prometheus/export.qtpl:14
-		qw422016.N().F(xb.values[i])
+		qw422016.N().Z(xb.values[i])
 //line app/vmselect/prometheus/export.qtpl:14
 		qw422016.N().S(` `)
 //line app/vmselect/prometheus/export.qtpl:15
@@ -106,7 +106,7 @@ func StreamExportJSONLine(qw422016 *qt422016.Writer, xb *exportBlock) {
 		values := xb.values
 
 //line app/vmselect/prometheus/export.qtpl:27
-		qw422016.N().F(values[0])
+		qw422016.N().Z(values[0])
 //line app/vmselect/prometheus/export.qtpl:28
 		values = values[1:]
 
@@ -115,7 +115,7 @@ func StreamExportJSONLine(qw422016 *qt422016.Writer, xb *exportBlock) {
 //line app/vmselect/prometheus/export.qtpl:29
 			qw422016.N().S(`,`)
 //line app/vmselect/prometheus/export.qtpl:30
-			qw422016.N().F(v)
+			qw422016.N().Z(v)
 //line app/vmselect/prometheus/export.qtpl:31
 		}
 //line app/vmselect/prometheus/export.qtpl:32
