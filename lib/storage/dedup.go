@@ -16,7 +16,7 @@ func SetMinScrapeIntervalForDeduplication(interval time.Duration) {
 var minScrapeInterval = int64(0)
 
 // DeduplicateSamples removes samples from src* if they are closer to each other than minScrapeInterval.
-func DeduplicateSamples(srcTimestamps []int64, srcValues []float64) ([]int64, []float64) {
+func DeduplicateSamples(srcTimestamps []int64, srcValues [][]byte) ([]int64, [][]byte) {
 	if minScrapeInterval <= 0 {
 		return srcTimestamps, srcValues
 	}

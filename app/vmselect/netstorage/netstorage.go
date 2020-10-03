@@ -34,7 +34,7 @@ type Result struct {
 	MetricName storage.MetricName
 
 	// Values are sorted by Timestamps.
-	Values     []float64
+	Values     [][]byte
 	Timestamps []int64
 
 	// Marshaled MetricName. Used only for results sorting
@@ -396,7 +396,7 @@ var dedupsDuringSelect = metrics.NewCounter(`vm_deduplicated_samples_total{type=
 
 type sortBlock struct {
 	Timestamps []int64
-	Values     []float64
+	Values     [][]byte
 	NextIdx    int
 }
 

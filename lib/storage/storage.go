@@ -1117,7 +1117,6 @@ func (mr *MetricRow) Unmarshal(src []byte) ([]byte, error) {
 		return tail, fmt.Errorf("cannot unmarshal value: %w", err)
 	}
 	mr.Value = value
-	tail = tail[8:]
 
 	return tail, nil
 }

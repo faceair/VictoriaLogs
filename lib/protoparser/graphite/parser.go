@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/VictoriaMetrics/VictoriaMetrics/lib/bytesutil"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/logger"
 	"github.com/VictoriaMetrics/metrics"
 	"github.com/valyala/fastjson/fastfloat"
@@ -44,14 +45,14 @@ func (rs *Rows) Unmarshal(s string) {
 type Row struct {
 	Metric    string
 	Tags      []Tag
-	Value     float64
+	Value     []byte
 	Timestamp int64
 }
 
 func (r *Row) reset() {
 	r.Metric = ""
 	r.Tags = nil
-	r.Value = 0
+	r.Value = nil
 	r.Timestamp = 0
 }
 
@@ -87,17 +88,10 @@ func (r *Row) unmarshal(s string, tagsPool []Tag) ([]Tag, error) {
 	n = strings.IndexByte(tail, ' ')
 	if n < 0 {
 		// There is no timestamp. Use default timestamp instead.
-		v, err := fastfloat.Parse(tail)
-		if err != nil {
-			return tagsPool, fmt.Errorf("cannot unmarshal value from %q: %w", tail, err)
-		}
-		r.Value = v
+		r.Value = bytesutil.ToUnsafeBytes(tail)
 		return tagsPool, nil
 	}
-	v, err := fastfloat.Parse(tail[:n])
-	if err != nil {
-		return tagsPool, fmt.Errorf("cannot unmarshal value from %q: %w", tail[:n], err)
-	}
+	v := bytesutil.ToUnsafeBytes(tail[:n])
 	ts, err := fastfloat.ParseInt64(tail[n+1:])
 	if err != nil {
 		return tagsPool, fmt.Errorf("cannot unmarshal timestamp from %q: %w", tail[n+1:], err)
