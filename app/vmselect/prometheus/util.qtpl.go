@@ -7,10 +7,9 @@ package prometheus
 //line app/vmselect/prometheus/util.qtpl:1
 import (
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/storage"
-)
 
 //line app/vmselect/prometheus/util.qtpl:7
-import (
+
 	qtio422016 "io"
 
 	qt422016 "github.com/valyala/quicktemplate"

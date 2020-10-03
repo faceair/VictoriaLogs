@@ -1,5 +1,0 @@
-groups:
-  - name: group
-    rules:
-      - for: 5m
-        expr: vm_rows > 0

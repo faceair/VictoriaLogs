@@ -10,10 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/VictoriaMetrics/VictoriaMetrics/app/vmselect/graphite"
+	"github.com/VictoriaMetrics/VictoriaMetrics/app/vmselect/logql"
 	"github.com/VictoriaMetrics/VictoriaMetrics/app/vmselect/netstorage"
 	"github.com/VictoriaMetrics/VictoriaMetrics/app/vmselect/prometheus"
-	"github.com/VictoriaMetrics/VictoriaMetrics/app/vmselect/promql"
 	"github.com/VictoriaMetrics/VictoriaMetrics/app/vmselect/searchutils"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/auth"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/buildinfo"
@@ -78,10 +77,10 @@ func main() {
 		tmpDataPath := *cacheDataPath + "/tmp"
 		fs.RemoveDirContents(tmpDataPath)
 		netstorage.InitTmpBlocksDir(tmpDataPath)
-		promql.InitRollupResultCache(*cacheDataPath + "/rollupResult")
+		logql.InitRollupResultCache(*cacheDataPath + "/rollupResult")
 	} else {
 		netstorage.InitTmpBlocksDir("")
-		promql.InitRollupResultCache("")
+		logql.InitRollupResultCache("")
 	}
 	concurrencyCh = make(chan struct{}, *maxConcurrentRequests)
 
@@ -103,7 +102,7 @@ func main() {
 	startTime = time.Now()
 	netstorage.Stop()
 	if len(*cacheDataPath) > 0 {
-		promql.StopRollupResultCache()
+		logql.StopRollupResultCache()
 	}
 	logger.Infof("successfully stopped netstorage in %.3f seconds", time.Since(startTime).Seconds())
 
@@ -165,7 +164,7 @@ func requestHandler(w http.ResponseWriter, r *http.Request) bool {
 			sendPrometheusError(w, r, fmt.Errorf("invalid authKey=%q for %q", r.FormValue("authKey"), path))
 			return true
 		}
-		promql.ResetRollupResultCache()
+		logql.ResetRollupResultCache()
 		return true
 	}
 
@@ -271,7 +270,7 @@ func selectHandler(startTime time.Time, w http.ResponseWriter, r *http.Request, 
 		return true
 	case "prometheus/api/v1/status/active_queries":
 		statusActiveQueriesRequests.Inc()
-		promql.WriteActiveQueries(w)
+		logql.WriteActiveQueries(w)
 		return true
 	case "prometheus/api/v1/export":
 		exportRequests.Inc()
@@ -280,67 +279,6 @@ func selectHandler(startTime time.Time, w http.ResponseWriter, r *http.Request, 
 			httpserver.Errorf(w, r, "error in %q: %s", r.URL.Path, err)
 			return true
 		}
-		return true
-	case "prometheus/api/v1/export/native":
-		exportNativeRequests.Inc()
-		if err := prometheus.ExportNativeHandler(startTime, at, w, r); err != nil {
-			exportNativeErrors.Inc()
-			httpserver.Errorf(w, r, "error in %q: %s", r.URL.Path, err)
-			return true
-		}
-		return true
-	case "prometheus/federate":
-		federateRequests.Inc()
-		if err := prometheus.FederateHandler(startTime, at, w, r); err != nil {
-			federateErrors.Inc()
-			httpserver.Errorf(w, r, "error in %q: %s", r.URL.Path, err)
-			return true
-		}
-		return true
-	case "graphite/metrics/find", "graphite/metrics/find/":
-		graphiteMetricsFindRequests.Inc()
-		httpserver.EnableCORS(w, r)
-		if err := graphite.MetricsFindHandler(startTime, at, w, r); err != nil {
-			graphiteMetricsFindErrors.Inc()
-			httpserver.Errorf(w, r, "error in %q: %s", r.URL.Path, err)
-			return true
-		}
-		return true
-	case "graphite/metrics/expand", "graphite/metrics/expand/":
-		graphiteMetricsExpandRequests.Inc()
-		httpserver.EnableCORS(w, r)
-		if err := graphite.MetricsExpandHandler(startTime, at, w, r); err != nil {
-			graphiteMetricsExpandErrors.Inc()
-			httpserver.Errorf(w, r, "error in %q: %s", r.URL.Path, err)
-			return true
-		}
-		return true
-	case "graphite/metrics/index.json", "graphite/metrics/index.json/":
-		graphiteMetricsIndexRequests.Inc()
-		httpserver.EnableCORS(w, r)
-		if err := graphite.MetricsIndexHandler(startTime, at, w, r); err != nil {
-			graphiteMetricsIndexErrors.Inc()
-			httpserver.Errorf(w, r, "error in %q: %s", r.URL.Path, err)
-			return true
-		}
-		return true
-	case "prometheus/api/v1/rules":
-		// Return dumb placeholder
-		rulesRequests.Inc()
-		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprintf(w, "%s", `{"status":"success","data":{"groups":[]}}`)
-		return true
-	case "prometheus/api/v1/alerts":
-		// Return dumb placehloder
-		alertsRequests.Inc()
-		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprintf(w, "%s", `{"status":"success","data":{"alerts":[]}}`)
-		return true
-	case "prometheus/api/v1/metadata":
-		// Return dumb placeholder
-		metadataRequests.Inc()
-		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprintf(w, "%s", `{"status":"success","data":{}}`)
 		return true
 	default:
 		return false
@@ -408,23 +346,4 @@ var (
 
 	exportRequests = metrics.NewCounter(`vm_http_requests_total{path="/select/{}/prometheus/api/v1/export"}`)
 	exportErrors   = metrics.NewCounter(`vm_http_request_errors_total{path="/select/{}/prometheus/api/v1/export"}`)
-
-	exportNativeRequests = metrics.NewCounter(`vm_http_requests_total{path="/select/{}/prometheus/api/v1/export/native"}`)
-	exportNativeErrors   = metrics.NewCounter(`vm_http_request_errors_total{path="/select/{}/prometheus/api/v1/export/native"}`)
-
-	federateRequests = metrics.NewCounter(`vm_http_requests_total{path="/select/{}/prometheus/federate"}`)
-	federateErrors   = metrics.NewCounter(`vm_http_request_errors_total{path="/select/{}/prometheus/federate"}`)
-
-	graphiteMetricsFindRequests = metrics.NewCounter(`vm_http_requests_total{path="/select/{}/graphite/metrics/find"}`)
-	graphiteMetricsFindErrors   = metrics.NewCounter(`vm_http_request_errors_total{path="/select/{}/graphite/metrics/find"}`)
-
-	graphiteMetricsExpandRequests = metrics.NewCounter(`vm_http_requests_total{path="/select/{}/graphite/metrics/expand"}`)
-	graphiteMetricsExpandErrors   = metrics.NewCounter(`vm_http_request_errors_total{path="/select/{}/graphite/metrics/expand"}`)
-
-	graphiteMetricsIndexRequests = metrics.NewCounter(`vm_http_requests_total{path="/select/{}/graphite/metrics/index.json"}`)
-	graphiteMetricsIndexErrors   = metrics.NewCounter(`vm_http_request_errors_total{path="/select/{}/graphite/metrics/index.json"}`)
-
-	rulesRequests    = metrics.NewCounter(`vm_http_requests_total{path="/select/{}/prometheus/api/v1/rules"}`)
-	alertsRequests   = metrics.NewCounter(`vm_http_requests_total{path="/select/{}/prometheus/api/v1/alerts"}`)
-	metadataRequests = metrics.NewCounter(`vm_http_requests_total{path="/select/{}/prometheus/api/v1/metadata"}`)
 )

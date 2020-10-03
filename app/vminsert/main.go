@@ -16,7 +16,6 @@ import (
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/envflag"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/flagutil"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/fs"
-	graphiteserver "github.com/VictoriaMetrics/VictoriaMetrics/lib/ingestserver/graphite"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/logger"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/procutil"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/protoparser/common"
@@ -26,7 +25,7 @@ import (
 )
 
 var (
-	graphiteListenAddr     = flag.String("graphiteListenAddr", ":2005", "TCP and UDP address to listen for Graphite plaintext data. Usually :2003 must be set. Doesn't work if empty")
+	listenAddr             = flag.String("listenAddr", ":2003", "TCP and UDP address to listen for plaintext data.")
 	maxLabelsPerTimeseries = flag.Int("maxLabelsPerTimeseries", 30, "The maximum number of labels accepted per time series. Superflouos labels are dropped")
 	storageNodes           = flagutil.NewArray("storageNode", "Address of vmstorage nodes; usage: -storageNode=vmstorage-host1:8400 -storageNode=vmstorage-host2:8400")
 )
@@ -52,7 +51,7 @@ func main() {
 	common.StartUnmarshalWorkers()
 	writeconcurrencylimiter.Init()
 
-	graphiteserver.MustStart(*graphiteListenAddr, func(r io.Reader) error {
+	graphite.MustStart(*listenAddr, func(r io.Reader) error {
 		var at auth.Token // TODO: properly initialize auth token
 		return graphite.InsertHandler(&at, r)
 	})

@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/VictoriaMetrics/VictoriaMetrics/app/vmselect/bufferedwriter"
+	"github.com/VictoriaMetrics/VictoriaMetrics/app/vmselect/logql"
 	"github.com/VictoriaMetrics/VictoriaMetrics/app/vmselect/netstorage"
-	"github.com/VictoriaMetrics/VictoriaMetrics/app/vmselect/promql"
 	"github.com/VictoriaMetrics/VictoriaMetrics/app/vmselect/searchutils"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/auth"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/bytesutil"
@@ -907,7 +907,7 @@ func QueryHandler(startTime time.Time, at *auth.Token, w http.ResponseWriter, r 
 	if len(query) > maxQueryLen.N {
 		return fmt.Errorf("too long query; got %d bytes; mustn't exceed `-search.maxQueryLen=%d` bytes", len(query), maxQueryLen.N)
 	}
-	if childQuery, windowStr, offsetStr := promql.IsMetricSelectorWithRollup(query); childQuery != "" {
+	if childQuery, windowStr, offsetStr := logql.IsMetricSelectorWithRollup(query); childQuery != "" {
 		window, err := parsePositiveDuration(windowStr, step)
 		if err != nil {
 			return fmt.Errorf("cannot parse window: %w", err)
@@ -925,7 +925,7 @@ func QueryHandler(startTime time.Time, at *auth.Token, w http.ResponseWriter, r 
 		queryDuration.UpdateDuration(startTime)
 		return nil
 	}
-	if childQuery, windowStr, stepStr, offsetStr := promql.IsRollup(query); childQuery != "" {
+	if childQuery, windowStr, stepStr, offsetStr := logql.IsRollup(query); childQuery != "" {
 		newStep, err := parsePositiveDuration(stepStr, step)
 		if err != nil {
 			return fmt.Errorf("cannot parse step: %w", err)
@@ -961,7 +961,7 @@ func QueryHandler(startTime time.Time, at *auth.Token, w http.ResponseWriter, r 
 	} else {
 		queryOffset = 0
 	}
-	ec := promql.EvalConfig{
+	ec := logql.EvalConfig{
 		AuthToken:        at,
 		Start:            start,
 		End:              start,
@@ -972,7 +972,7 @@ func QueryHandler(startTime time.Time, at *auth.Token, w http.ResponseWriter, r 
 
 		DenyPartialResponse: searchutils.GetDenyPartialResponse(r),
 	}
-	result, err := promql.Exec(&ec, query, true)
+	result, err := logql.Exec(&ec, query, true)
 	if err != nil {
 		return fmt.Errorf("error when executing query=%q for (time=%d, step=%d): %w", query, start, step, err)
 	}
@@ -1055,14 +1055,14 @@ func queryRangeHandler(startTime time.Time, at *auth.Token, w http.ResponseWrite
 	if start > end {
 		end = start + defaultStep
 	}
-	if err := promql.ValidateMaxPointsPerTimeseries(start, end, step); err != nil {
+	if err := logql.ValidateMaxPointsPerTimeseries(start, end, step); err != nil {
 		return err
 	}
 	if mayCache {
-		start, end = promql.AdjustStartEnd(start, end, step)
+		start, end = logql.AdjustStartEnd(start, end, step)
 	}
 
-	ec := promql.EvalConfig{
+	ec := logql.EvalConfig{
 		AuthToken:        at,
 		Start:            start,
 		End:              end,
@@ -1074,7 +1074,7 @@ func queryRangeHandler(startTime time.Time, at *auth.Token, w http.ResponseWrite
 
 		DenyPartialResponse: searchutils.GetDenyPartialResponse(r),
 	}
-	result, err := promql.Exec(&ec, query, false)
+	result, err := logql.Exec(&ec, query, false)
 	if err != nil {
 		return fmt.Errorf("cannot execute query: %w", err)
 	}
@@ -1181,7 +1181,7 @@ func getMaxLookback(r *http.Request) (int64, error) {
 func getTagFilterssFromMatches(matches []string) ([][]storage.TagFilter, error) {
 	tagFilterss := make([][]storage.TagFilter, 0, len(matches))
 	for _, match := range matches {
-		tagFilters, err := promql.ParseMetricSelector(match)
+		tagFilters, err := logql.ParseMetricSelector(match)
 		if err != nil {
 			return nil, fmt.Errorf("cannot parse %q: %w", match, err)
 		}

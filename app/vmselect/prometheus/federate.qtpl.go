@@ -7,12 +7,11 @@ package prometheus
 //line app/vmselect/prometheus/federate.qtpl:1
 import (
 	"github.com/VictoriaMetrics/VictoriaMetrics/app/vmselect/netstorage"
-)
 
-// Federate writes rs in /federate format.// See https://prometheus.io/docs/prometheus/latest/federation/
+	// Federate writes rs in /federate format.// See https://prometheus.io/docs/prometheus/latest/federation/
 
 //line app/vmselect/prometheus/federate.qtpl:9
-import (
+
 	qtio422016 "io"
 
 	qt422016 "github.com/valyala/quicktemplate"

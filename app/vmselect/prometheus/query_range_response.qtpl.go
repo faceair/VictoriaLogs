@@ -7,12 +7,11 @@ package prometheus
 //line app/vmselect/prometheus/query_range_response.qtpl:1
 import (
 	"github.com/VictoriaMetrics/VictoriaMetrics/app/vmselect/netstorage"
-)
 
-// QueryRangeResponse generates response for /api/v1/query_range.See https://prometheus.io/docs/prometheus/latest/querying/api/#range-queries
+	// QueryRangeResponse generates response for /api/v1/query_range.See https://prometheus.io/docs/prometheus/latest/querying/api/#range-queries
 
 //line app/vmselect/prometheus/query_range_response.qtpl:8
-import (
+
 	qtio422016 "io"
 
 	qt422016 "github.com/valyala/quicktemplate"
