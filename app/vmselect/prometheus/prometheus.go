@@ -3,7 +3,6 @@ package prometheus
 import (
 	"flag"
 	"fmt"
-	"math"
 	"net/http"
 	"runtime"
 	"sort"
@@ -282,7 +281,7 @@ func exportHandler(at *auth.Token, w http.ResponseWriter, r *http.Request, match
 			values := valuesOrig
 			timestamps := timestampsOrig
 			for len(values) > 0 {
-				var valuesChunk []float64
+				var valuesChunk [][]byte
 				var timestampsChunk []int64
 				if len(values) > maxRowsPerLine {
 					valuesChunk = values[:maxRowsPerLine]
@@ -389,7 +388,7 @@ func exportHandler(at *auth.Token, w http.ResponseWriter, r *http.Request, match
 type exportBlock struct {
 	mn         *storage.MetricName
 	timestamps []int64
-	values     []float64
+	values     [][]byte
 }
 
 func (xb *exportBlock) reset() {
@@ -962,14 +961,13 @@ func QueryHandler(startTime time.Time, at *auth.Token, w http.ResponseWriter, r 
 		queryOffset = 0
 	}
 	ec := logql.EvalConfig{
-		AuthToken:        at,
-		Start:            start,
-		End:              start,
-		Step:             step,
-		QuotedRemoteAddr: httpserver.GetQuotedRemoteAddr(r),
-		Deadline:         deadline,
-		LookbackDelta:    lookbackDelta,
-
+		AuthToken:           at,
+		Start:               start,
+		End:                 start,
+		Step:                step,
+		QuotedRemoteAddr:    httpserver.GetQuotedRemoteAddr(r),
+		Deadline:            deadline,
+		LookbackDelta:       lookbackDelta,
 		DenyPartialResponse: searchutils.GetDenyPartialResponse(r),
 	}
 	result, err := logql.Exec(&ec, query, true)
@@ -1103,7 +1101,7 @@ func removeEmptyValuesAndTimeseries(tss []netstorage.Result) []netstorage.Result
 		ts := &tss[i]
 		hasNaNs := false
 		for _, v := range ts.Values {
-			if math.IsNaN(v) {
+			if len(v) == 0 {
 				hasNaNs = true
 				break
 			}
@@ -1121,7 +1119,7 @@ func removeEmptyValuesAndTimeseries(tss []netstorage.Result) []netstorage.Result
 		dstValues := ts.Values[:0]
 		dstTimestamps := ts.Timestamps[:0]
 		for j, v := range ts.Values {
-			if math.IsNaN(v) {
+			if len(v) == 0 {
 				continue
 			}
 			dstValues = append(dstValues, v)
@@ -1138,7 +1136,7 @@ func removeEmptyValuesAndTimeseries(tss []netstorage.Result) []netstorage.Result
 
 var queryRangeDuration = metrics.NewSummary(`vm_request_duration_seconds{path="/api/v1/query_range"}`)
 
-var nan = math.NaN()
+var nan []byte
 
 // adjustLastPoints substitutes the last point values on the time range (start..end]
 // with the previous point values, since these points may contain incomplete values.

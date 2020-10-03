@@ -5,13 +5,12 @@
 package prometheus
 
 //line app/vmselect/prometheus/labels_count_response.qtpl:1
-import (
-	"github.com/VictoriaMetrics/VictoriaMetrics/lib/storage"
+import "github.com/VictoriaMetrics/VictoriaMetrics/lib/storage"
 
-	// LabelsCountResponse generates response for /api/v1/labels/count .
+// LabelsCountResponse generates response for /api/v1/labels/count .
 
 //line app/vmselect/prometheus/labels_count_response.qtpl:5
-
+import (
 	qtio422016 "io"
 
 	qt422016 "github.com/valyala/quicktemplate"

@@ -7,11 +7,12 @@ package prometheus
 //line app/vmselect/prometheus/series_response.qtpl:1
 import (
 	"github.com/valyala/quicktemplate"
+)
 
-	// SeriesResponse generates response for /api/v1/series.See https://prometheus.io/docs/prometheus/latest/querying/api/#finding-series-by-label-matchers
+// SeriesResponse generates response for /api/v1/series.See https://prometheus.io/docs/prometheus/latest/querying/api/#finding-series-by-label-matchers
 
 //line app/vmselect/prometheus/series_response.qtpl:8
-
+import (
 	qtio422016 "io"
 
 	qt422016 "github.com/valyala/quicktemplate"
