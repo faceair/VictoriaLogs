@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/VictoriaMetrics/VictoriaMetrics/app/vmselect/bufferedwriter"
-	"github.com/VictoriaMetrics/VictoriaMetrics/app/vmselect/logql"
 	"github.com/VictoriaMetrics/VictoriaMetrics/app/vmselect/netstorage"
+	"github.com/VictoriaMetrics/VictoriaMetrics/app/vmselect/querier"
 	"github.com/VictoriaMetrics/VictoriaMetrics/app/vmselect/searchutils"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/auth"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/bytesutil"
@@ -23,7 +23,6 @@ import (
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/logger"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/storage"
 	"github.com/VictoriaMetrics/metrics"
-	"github.com/VictoriaMetrics/metricsql"
 	"github.com/valyala/fastjson/fastfloat"
 	"github.com/valyala/quicktemplate"
 )
@@ -906,49 +905,6 @@ func QueryHandler(startTime time.Time, at *auth.Token, w http.ResponseWriter, r 
 	if len(query) > maxQueryLen.N {
 		return fmt.Errorf("too long query; got %d bytes; mustn't exceed `-search.maxQueryLen=%d` bytes", len(query), maxQueryLen.N)
 	}
-	if childQuery, windowStr, offsetStr := logql.IsMetricSelectorWithRollup(query); childQuery != "" {
-		window, err := parsePositiveDuration(windowStr, step)
-		if err != nil {
-			return fmt.Errorf("cannot parse window: %w", err)
-		}
-		offset, err := parseDuration(offsetStr, step)
-		if err != nil {
-			return fmt.Errorf("cannot parse offset: %w", err)
-		}
-		start -= offset
-		end := start
-		start = end - window
-		if err := exportHandler(at, w, r, []string{childQuery}, start, end, "promapi", 0, false, deadline); err != nil {
-			return fmt.Errorf("error when exporting data for query=%q on the time range (start=%d, end=%d): %w", childQuery, start, end, err)
-		}
-		queryDuration.UpdateDuration(startTime)
-		return nil
-	}
-	if childQuery, windowStr, stepStr, offsetStr := logql.IsRollup(query); childQuery != "" {
-		newStep, err := parsePositiveDuration(stepStr, step)
-		if err != nil {
-			return fmt.Errorf("cannot parse step: %w", err)
-		}
-		if newStep > 0 {
-			step = newStep
-		}
-		window, err := parsePositiveDuration(windowStr, step)
-		if err != nil {
-			return fmt.Errorf("cannot parse window: %w", err)
-		}
-		offset, err := parseDuration(offsetStr, step)
-		if err != nil {
-			return fmt.Errorf("cannot parse offset: %w", err)
-		}
-		start -= offset
-		end := start
-		start = end - window
-		if err := queryRangeHandler(startTime, at, w, childQuery, start, end, step, r, ct); err != nil {
-			return fmt.Errorf("error when executing query=%q on the time range (start=%d, end=%d, step=%d): %w", childQuery, start, end, step, err)
-		}
-		queryDuration.UpdateDuration(startTime)
-		return nil
-	}
 
 	queryOffset := getLatencyOffsetMilliseconds()
 	if !searchutils.GetBool(r, "nocache") && ct-start < queryOffset && start-ct < queryOffset {
@@ -960,7 +916,7 @@ func QueryHandler(startTime time.Time, at *auth.Token, w http.ResponseWriter, r 
 	} else {
 		queryOffset = 0
 	}
-	ec := logql.EvalConfig{
+	ec := querier.EvalConfig{
 		AuthToken:           at,
 		Start:               start,
 		End:                 start,
@@ -970,7 +926,7 @@ func QueryHandler(startTime time.Time, at *auth.Token, w http.ResponseWriter, r 
 		LookbackDelta:       lookbackDelta,
 		DenyPartialResponse: searchutils.GetDenyPartialResponse(r),
 	}
-	result, err := logql.Exec(&ec, query, true)
+	result, err := querier.Exec(&ec, query, true)
 	if err != nil {
 		return fmt.Errorf("error when executing query=%q for (time=%d, step=%d): %w", query, start, step, err)
 	}
@@ -995,20 +951,6 @@ func QueryHandler(startTime time.Time, at *auth.Token, w http.ResponseWriter, r 
 }
 
 var queryDuration = metrics.NewSummary(`vm_request_duration_seconds{path="/api/v1/query"}`)
-
-func parseDuration(s string, step int64) (int64, error) {
-	if len(s) == 0 {
-		return 0, nil
-	}
-	return metricsql.DurationValue(s, step)
-}
-
-func parsePositiveDuration(s string, step int64) (int64, error) {
-	if len(s) == 0 {
-		return 0, nil
-	}
-	return metricsql.PositiveDurationValue(s, step)
-}
 
 // QueryRangeHandler processes /api/v1/query_range request.
 //
@@ -1053,26 +995,25 @@ func queryRangeHandler(startTime time.Time, at *auth.Token, w http.ResponseWrite
 	if start > end {
 		end = start + defaultStep
 	}
-	if err := logql.ValidateMaxPointsPerTimeseries(start, end, step); err != nil {
+	if err := querier.ValidateMaxPointsPerTimeseries(start, end, step); err != nil {
 		return err
 	}
 	if mayCache {
-		start, end = logql.AdjustStartEnd(start, end, step)
+		start, end = querier.AdjustStartEnd(start, end, step)
 	}
 
-	ec := logql.EvalConfig{
-		AuthToken:        at,
-		Start:            start,
-		End:              end,
-		Step:             step,
-		QuotedRemoteAddr: httpserver.GetQuotedRemoteAddr(r),
-		Deadline:         deadline,
-		MayCache:         mayCache,
-		LookbackDelta:    lookbackDelta,
-
+	ec := querier.EvalConfig{
+		AuthToken:           at,
+		Start:               start,
+		End:                 end,
+		Step:                step,
+		QuotedRemoteAddr:    httpserver.GetQuotedRemoteAddr(r),
+		Deadline:            deadline,
+		MayCache:            mayCache,
+		LookbackDelta:       lookbackDelta,
 		DenyPartialResponse: searchutils.GetDenyPartialResponse(r),
 	}
-	result, err := logql.Exec(&ec, query, false)
+	result, err := querier.Exec(&ec, query, false)
 	if err != nil {
 		return fmt.Errorf("cannot execute query: %w", err)
 	}
@@ -1143,7 +1084,7 @@ func getMaxLookback(r *http.Request) (int64, error) {
 func getTagFilterssFromMatches(matches []string) ([][]storage.TagFilter, error) {
 	tagFilterss := make([][]storage.TagFilter, 0, len(matches))
 	for _, match := range matches {
-		tagFilters, err := logql.ParseMetricSelector(match)
+		tagFilters, err := querier.ParseMetricSelector(match)
 		if err != nil {
 			return nil, fmt.Errorf("cannot parse %q: %w", match, err)
 		}

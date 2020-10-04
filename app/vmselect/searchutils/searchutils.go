@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/fasttime"
-	"github.com/VictoriaMetrics/metricsql"
+	"github.com/VictoriaMetrics/VictoriaMetrics/lib/logql"
 )
 
 var (
@@ -54,7 +54,7 @@ func GetTime(r *http.Request, argKey string, defaultMs int64) (int64, error) {
 				return maxTimeMsecs, nil
 			}
 			// Try parsing duration relative to the current time
-			d, err1 := metricsql.DurationValue(argValue, 0)
+			d, err1 := logql.DurationValue(argValue, 0)
 			if err1 != nil {
 				return 0, fmt.Errorf("cannot parse %q=%q: %w", argKey, argValue, err)
 			}
@@ -97,7 +97,7 @@ func GetDuration(r *http.Request, argKey string, defaultValue int64) (int64, err
 	secs, err := strconv.ParseFloat(argValue, 64)
 	if err != nil {
 		// Try parsing string format
-		d, err := metricsql.DurationValue(argValue, 0)
+		d, err := logql.DurationValue(argValue, 0)
 		if err != nil {
 			return 0, fmt.Errorf("cannot parse %q=%q: %w", argKey, argValue, err)
 		}

@@ -1,8 +1,0 @@
-[
-	{
-		"targets": ["host1", "host2"],
-		"labels": {
-			"qwe": "rty"
-		}
-	}
-]

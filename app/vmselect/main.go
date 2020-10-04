@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/VictoriaMetrics/VictoriaMetrics/app/vmselect/logql"
 	"github.com/VictoriaMetrics/VictoriaMetrics/app/vmselect/netstorage"
 	"github.com/VictoriaMetrics/VictoriaMetrics/app/vmselect/prometheus"
+	"github.com/VictoriaMetrics/VictoriaMetrics/app/vmselect/querier"
 	"github.com/VictoriaMetrics/VictoriaMetrics/app/vmselect/searchutils"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/auth"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/buildinfo"
@@ -257,7 +257,7 @@ func selectHandler(startTime time.Time, w http.ResponseWriter, r *http.Request, 
 		return true
 	case "prometheus/api/v1/status/active_queries":
 		statusActiveQueriesRequests.Inc()
-		logql.WriteActiveQueries(w)
+		querier.WriteActiveQueries(w)
 		return true
 	case "prometheus/api/v1/export":
 		exportRequests.Inc()

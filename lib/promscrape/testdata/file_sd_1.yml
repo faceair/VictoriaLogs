@@ -1,3 +1,0 @@
-- targets: [localhost:9090]
-  labels:
-    yml: test
