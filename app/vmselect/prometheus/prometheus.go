@@ -3,6 +3,7 @@ package prometheus
 import (
 	"flag"
 	"fmt"
+	"math"
 	"net/http"
 	"runtime"
 	"sort"
@@ -21,6 +22,7 @@ import (
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/flagutil"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/httpserver"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/logger"
+	"github.com/VictoriaMetrics/VictoriaMetrics/lib/logql"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/storage"
 	"github.com/VictoriaMetrics/metrics"
 	"github.com/valyala/fastjson/fastfloat"
@@ -336,7 +338,7 @@ func exportHandler(at *auth.Token, w http.ResponseWriter, r *http.Request, match
 				xb := exportBlockPool.Get().(*exportBlock)
 				xb.mn = &rs.MetricName
 				xb.timestamps = rs.Timestamps
-				xb.values = rs.Values
+				xb.values = rs.Datas
 				writeLineFunc(xb, resultsCh)
 				xb.reset()
 				exportBlockPool.Put(xb)
@@ -905,6 +907,49 @@ func QueryHandler(startTime time.Time, at *auth.Token, w http.ResponseWriter, r 
 	if len(query) > maxQueryLen.N {
 		return fmt.Errorf("too long query; got %d bytes; mustn't exceed `-search.maxQueryLen=%d` bytes", len(query), maxQueryLen.N)
 	}
+	if childQuery, windowStr, offsetStr := querier.IsMetricSelectorWithRollup(query); childQuery != "" {
+		window, err := parsePositiveDuration(windowStr, step)
+		if err != nil {
+			return fmt.Errorf("cannot parse window: %w", err)
+		}
+		offset, err := parseDuration(offsetStr, step)
+		if err != nil {
+			return fmt.Errorf("cannot parse offset: %w", err)
+		}
+		start -= offset
+		end := start
+		start = end - window
+		if err := exportHandler(at, w, r, []string{childQuery}, start, end, "promapi", 0, false, deadline); err != nil {
+			return fmt.Errorf("error when exporting data for query=%q on the time range (start=%d, end=%d): %w", childQuery, start, end, err)
+		}
+		queryDuration.UpdateDuration(startTime)
+		return nil
+	}
+	if childQuery, windowStr, stepStr, offsetStr := querier.IsRollup(query); childQuery != "" {
+		newStep, err := parsePositiveDuration(stepStr, step)
+		if err != nil {
+			return fmt.Errorf("cannot parse step: %w", err)
+		}
+		if newStep > 0 {
+			step = newStep
+		}
+		window, err := parsePositiveDuration(windowStr, step)
+		if err != nil {
+			return fmt.Errorf("cannot parse window: %w", err)
+		}
+		offset, err := parseDuration(offsetStr, step)
+		if err != nil {
+			return fmt.Errorf("cannot parse offset: %w", err)
+		}
+		start -= offset
+		end := start
+		start = end - window
+		if err := queryRangeHandler(startTime, at, w, childQuery, start, end, step, r, ct); err != nil {
+			return fmt.Errorf("error when executing query=%q on the time range (start=%d, end=%d, step=%d): %w", childQuery, start, end, step, err)
+		}
+		queryDuration.UpdateDuration(startTime)
+		return nil
+	}
 
 	queryOffset := getLatencyOffsetMilliseconds()
 	if !searchutils.GetBool(r, "nocache") && ct-start < queryOffset && start-ct < queryOffset {
@@ -917,13 +962,14 @@ func QueryHandler(startTime time.Time, at *auth.Token, w http.ResponseWriter, r 
 		queryOffset = 0
 	}
 	ec := querier.EvalConfig{
-		AuthToken:           at,
-		Start:               start,
-		End:                 start,
-		Step:                step,
-		QuotedRemoteAddr:    httpserver.GetQuotedRemoteAddr(r),
-		Deadline:            deadline,
-		LookbackDelta:       lookbackDelta,
+		AuthToken:        at,
+		Start:            start,
+		End:              start,
+		Step:             step,
+		QuotedRemoteAddr: httpserver.GetQuotedRemoteAddr(r),
+		Deadline:         deadline,
+		LookbackDelta:    lookbackDelta,
+
 		DenyPartialResponse: searchutils.GetDenyPartialResponse(r),
 	}
 	result, err := querier.Exec(&ec, query, true)
@@ -951,6 +997,20 @@ func QueryHandler(startTime time.Time, at *auth.Token, w http.ResponseWriter, r 
 }
 
 var queryDuration = metrics.NewSummary(`vm_request_duration_seconds{path="/api/v1/query"}`)
+
+func parseDuration(s string, step int64) (int64, error) {
+	if len(s) == 0 {
+		return 0, nil
+	}
+	return logql.DurationValue(s, step)
+}
+
+func parsePositiveDuration(s string, step int64) (int64, error) {
+	if len(s) == 0 {
+		return 0, nil
+	}
+	return logql.PositiveDurationValue(s, step)
+}
 
 // QueryRangeHandler processes /api/v1/query_range request.
 //
@@ -1003,19 +1063,24 @@ func queryRangeHandler(startTime time.Time, at *auth.Token, w http.ResponseWrite
 	}
 
 	ec := querier.EvalConfig{
-		AuthToken:           at,
-		Start:               start,
-		End:                 end,
-		Step:                step,
-		QuotedRemoteAddr:    httpserver.GetQuotedRemoteAddr(r),
-		Deadline:            deadline,
-		MayCache:            mayCache,
-		LookbackDelta:       lookbackDelta,
+		AuthToken:        at,
+		Start:            start,
+		End:              end,
+		Step:             step,
+		QuotedRemoteAddr: httpserver.GetQuotedRemoteAddr(r),
+		Deadline:         deadline,
+		MayCache:         mayCache,
+		LookbackDelta:    lookbackDelta,
+
 		DenyPartialResponse: searchutils.GetDenyPartialResponse(r),
 	}
 	result, err := querier.Exec(&ec, query, false)
 	if err != nil {
 		return fmt.Errorf("cannot execute query: %w", err)
+	}
+	queryOffset := getLatencyOffsetMilliseconds()
+	if ct-queryOffset < end {
+		result = adjustLastPoints(result, ct-queryOffset, ct+step)
 	}
 
 	// Remove NaN values as Prometheus does.
@@ -1038,7 +1103,7 @@ func removeEmptyValuesAndTimeseries(tss []netstorage.Result) []netstorage.Result
 		ts := &tss[i]
 		hasNaNs := false
 		for _, v := range ts.Values {
-			if len(v) == 0 {
+			if math.IsNaN(v) {
 				hasNaNs = true
 				break
 			}
@@ -1056,7 +1121,7 @@ func removeEmptyValuesAndTimeseries(tss []netstorage.Result) []netstorage.Result
 		dstValues := ts.Values[:0]
 		dstTimestamps := ts.Timestamps[:0]
 		for j, v := range ts.Values {
-			if len(v) == 0 {
+			if math.IsNaN(v) {
 				continue
 			}
 			dstValues = append(dstValues, v)
@@ -1072,6 +1137,38 @@ func removeEmptyValuesAndTimeseries(tss []netstorage.Result) []netstorage.Result
 }
 
 var queryRangeDuration = metrics.NewSummary(`vm_request_duration_seconds{path="/api/v1/query_range"}`)
+
+var nan = math.NaN()
+
+// adjustLastPoints substitutes the last point values on the time range (start..end]
+// with the previous point values, since these points may contain incomplete values.
+func adjustLastPoints(tss []netstorage.Result, start, end int64) []netstorage.Result {
+	for i := range tss {
+		ts := &tss[i]
+		values := ts.Values
+		timestamps := ts.Timestamps
+		j := len(timestamps) - 1
+		if j >= 0 && timestamps[j] > end {
+			// It looks like the `offset` is used in the query, which shifts time range beyond the `end`.
+			// Leave such a time series as is, since it is unclear which points may be incomplete in it.
+			// See https://github.com/VictoriaMetrics/VictoriaMetrics/issues/625
+			continue
+		}
+		for j >= 0 && timestamps[j] > start {
+			j--
+		}
+		j++
+		lastValue := nan
+		if j > 0 {
+			lastValue = values[j-1]
+		}
+		for j < len(timestamps) && timestamps[j] <= end {
+			values[j] = lastValue
+			j++
+		}
+	}
+	return tss
+}
 
 func getMaxLookback(r *http.Request) (int64, error) {
 	d := maxLookback.Milliseconds()

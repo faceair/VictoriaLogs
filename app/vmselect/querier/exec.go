@@ -3,13 +3,13 @@ package querier
 import (
 	"flag"
 	"fmt"
+	"math"
 	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/VictoriaMetrics/VictoriaMetrics/app/vmselect/netstorage"
-	"github.com/VictoriaMetrics/VictoriaMetrics/lib/bytesutil"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/logger"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/logql"
 	"github.com/VictoriaMetrics/metrics"
@@ -18,9 +18,6 @@ import (
 var logSlowQueryDuration = flag.Duration("search.logSlowQueryDuration", 5*time.Second, "Log queries with execution time exceeding this value. Zero disables slow query logging")
 
 var slowQueries = metrics.NewCounter(`vm_slow_queries_total`)
-
-// The maximum interval without previous rows.
-const maxSilenceInterval = 5 * 60 * 1000
 
 // Exec executes q for the given ec.
 func Exec(ec *EvalConfig, q string, isFirstPointOnly bool) ([]netstorage.Result, error) {
@@ -84,8 +81,6 @@ func maySortResults(e logql.Expr, tss []*timeseries) bool {
 	}
 }
 
-var bbPool bytesutil.ByteBufferPool
-
 func timeseriesToResult(tss []*timeseries, maySort bool) ([]netstorage.Result, error) {
 	tss = removeNaNs(tss)
 	result := make([]netstorage.Result, len(tss))
@@ -120,7 +115,7 @@ func removeNaNs(tss []*timeseries) []*timeseries {
 	for _, ts := range tss {
 		allNans := true
 		for _, v := range ts.Values {
-			if len(v) != 0 {
+			if math.IsNaN(v) {
 				allNans = false
 				break
 			}

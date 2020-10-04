@@ -49,7 +49,7 @@ func TestTimeseriesMarshalUnmarshalFast(t *testing.T) {
 				Key:   []byte(fmt.Sprintf("key %d", i)),
 				Value: []byte(fmt.Sprintf("value %d", i)),
 			}}
-			ts.Values = [][]byte{{byte(i)}}
+			ts.Values = []float64{float64(i) + 0.2}
 			ts.Timestamps = timestamps
 
 			dstLen := len(dst)

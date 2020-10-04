@@ -34,8 +34,9 @@ type Result struct {
 	MetricName storage.MetricName
 
 	// Values are sorted by Timestamps.
-	Values     [][]byte
 	Timestamps []int64
+	Values     []float64
+	Datas      [][]byte
 
 	// Marshaled MetricName. Used only for results sorting
 	// in app/vmselect/promql
@@ -44,8 +45,9 @@ type Result struct {
 
 func (r *Result) reset() {
 	r.MetricName.Reset()
-	r.Values = r.Values[:0]
 	r.Timestamps = r.Timestamps[:0]
+	r.Values = r.Values[:0]
+	r.Datas = r.Datas[:0]
 	r.MetricNameMarshaled = r.MetricNameMarshaled[:0]
 }
 
@@ -361,7 +363,10 @@ func mergeSortBlocks(dst *Result, sbh sortBlocksHeap) {
 		heap.Pop(&sbh)
 		if len(sbh) == 0 {
 			dst.Timestamps = append(dst.Timestamps, top.Timestamps[top.NextIdx:]...)
-			dst.Values = append(dst.Values, top.Values[top.NextIdx:]...)
+			dst.Datas = append(dst.Datas, top.Values[top.NextIdx:]...)
+			for i := 0; i < len(top.Values)-top.NextIdx; i++ {
+				dst.Values = append(dst.Values, 1)
+			}
 			putSortBlock(top)
 			break
 		}
@@ -375,7 +380,10 @@ func mergeSortBlocks(dst *Result, sbh sortBlocksHeap) {
 			}
 		}
 		dst.Timestamps = append(dst.Timestamps, top.Timestamps[top.NextIdx:idxNext]...)
-		dst.Values = append(dst.Values, top.Values[top.NextIdx:idxNext]...)
+		dst.Datas = append(dst.Datas, top.Values[top.NextIdx:idxNext]...)
+		for i := 0; i < idxNext-top.NextIdx; i++ {
+			dst.Values = append(dst.Values, 1)
+		}
 		if idxNext < len(top.Timestamps) {
 			top.NextIdx = idxNext
 			heap.Push(&sbh, top)
@@ -385,11 +393,12 @@ func mergeSortBlocks(dst *Result, sbh sortBlocksHeap) {
 		}
 	}
 
-	timestamps, values := storage.DeduplicateSamples(dst.Timestamps, dst.Values)
+	timestamps, values, datas := storage.DeduplicateSamples(dst.Timestamps, dst.Values, dst.Datas)
 	dedups := len(dst.Timestamps) - len(timestamps)
 	dedupsDuringSelect.Add(dedups)
 	dst.Timestamps = timestamps
 	dst.Values = values
+	dst.Datas = datas
 }
 
 var dedupsDuringSelect = metrics.NewCounter(`vm_deduplicated_samples_total{type="select"}`)

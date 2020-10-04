@@ -16,11 +16,36 @@
 }
 {% endfunc %}
 
-{% func metricRow(timestamp int64, value []byte) %}
-	[{%f= float64(timestamp)/1e3 %},"{%z= value %}"]
+{% func metricRow(timestamp int64, value float64) %}
+	[{%f= float64(timestamp)/1e3 %},"{%f= value %}"]
 {% endfunc %}
 
-{% func valuesWithTimestamps(values [][]byte, timestamps []int64) %}
+{% func valuesWithTimestamps(values []float64, timestamps []int64) %}
+	{% if len(values) == 0 %}
+		[]
+		{% return %}
+	{% endif %}
+[
+	{% code /* inline metricRow call here for the sake of performance optimization */ %}
+	[{%f= float64(timestamps[0])/1e3 %},"{%f= values[0] %}"]
+	{% code
+		timestamps = timestamps[1:]
+		values = values[1:]
+	%}
+	{% if len(values) > 0 %}
+		{%code
+			// Remove bounds check inside the loop below
+			_ = timestamps[len(values)-1]
+		%}
+		{% for i, v := range values %}
+			{% code /* inline metricRow call here for the sake of performance optimization */ %}
+			,[{%f= float64(timestamps[i])/1e3 %},"{%f= v %}"]
+		{% endfor %}
+	{% endif %}
+]
+{% endfunc %}
+
+{% func datasWithTimestamps(values [][]byte, timestamps []int64) %}
 	{% if len(values) == 0 %}
 		[]
 		{% return %}

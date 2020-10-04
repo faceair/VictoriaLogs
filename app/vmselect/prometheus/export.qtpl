@@ -47,7 +47,7 @@
 {% func ExportPromAPILine(xb *exportBlock) %}
 {
 	"metric": {%= metricNameObject(xb.mn) %},
-	"values": {%= valuesWithTimestamps(xb.values, xb.timestamps) %}
+	"values": {%= datasWithTimestamps(xb.values, xb.timestamps) %}
 }
 {% endfunc %}
 

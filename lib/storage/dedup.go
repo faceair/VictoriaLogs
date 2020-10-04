@@ -16,19 +16,20 @@ func SetMinScrapeIntervalForDeduplication(interval time.Duration) {
 var minScrapeInterval = int64(0)
 
 // DeduplicateSamples removes samples from src* if they are closer to each other than minScrapeInterval.
-func DeduplicateSamples(srcTimestamps []int64, srcValues [][]byte) ([]int64, [][]byte) {
+func DeduplicateSamples(srcTimestamps []int64, srcValues []float64, srcDatas [][]byte) ([]int64, []float64, [][]byte) {
 	if minScrapeInterval <= 0 {
-		return srcTimestamps, srcValues
+		return srcTimestamps, srcValues, srcDatas
 	}
 	if !needsDedup(srcTimestamps, minScrapeInterval) {
 		// Fast path - nothing to deduplicate
-		return srcTimestamps, srcValues
+		return srcTimestamps, srcValues, srcDatas
 	}
 
 	// Slow path - dedup data points.
 	tsNext := (srcTimestamps[0] - srcTimestamps[0]%minScrapeInterval) + minScrapeInterval
 	dstTimestamps := srcTimestamps[:1]
 	dstValues := srcValues[:1]
+	dstDatas := srcDatas[:1]
 	for i := 1; i < len(srcTimestamps); i++ {
 		ts := srcTimestamps[i]
 		if ts < tsNext {
@@ -36,6 +37,7 @@ func DeduplicateSamples(srcTimestamps []int64, srcValues [][]byte) ([]int64, [][
 		}
 		dstTimestamps = append(dstTimestamps, ts)
 		dstValues = append(dstValues, srcValues[i])
+		dstDatas = append(dstDatas, srcDatas[i])
 
 		// Update tsNext
 		tsNext += minScrapeInterval
@@ -44,7 +46,7 @@ func DeduplicateSamples(srcTimestamps []int64, srcValues [][]byte) ([]int64, [][
 			tsNext = (ts - ts%minScrapeInterval) + minScrapeInterval
 		}
 	}
-	return dstTimestamps, dstValues
+	return dstTimestamps, dstValues, dstDatas
 }
 
 func deduplicateSamplesDuringMerge(srcTimestamps []int64, srcValues [][]byte) ([]int64, [][]byte) {

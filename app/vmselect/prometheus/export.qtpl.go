@@ -185,7 +185,7 @@ func StreamExportPromAPILine(qw422016 *qt422016.Writer, xb *exportBlock) {
 //line app/vmselect/prometheus/export.qtpl:49
 	qw422016.N().S(`,"values":`)
 //line app/vmselect/prometheus/export.qtpl:50
-	streamvaluesWithTimestamps(qw422016, xb.values, xb.timestamps)
+	streamdatasWithTimestamps(qw422016, xb.values, xb.timestamps)
 //line app/vmselect/prometheus/export.qtpl:50
 	qw422016.N().S(`}`)
 //line app/vmselect/prometheus/export.qtpl:52

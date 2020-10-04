@@ -37,7 +37,7 @@ func StreamFederate(qw422016 *qt422016.Writer, rs *netstorage.Result) {
 //line app/vmselect/prometheus/federate.qtpl:11
 	qw422016.N().S(` `)
 //line app/vmselect/prometheus/federate.qtpl:12
-	qw422016.N().Z(rs.Values[len(rs.Values)-1])
+	qw422016.N().F(rs.Values[len(rs.Values)-1])
 //line app/vmselect/prometheus/federate.qtpl:12
 	qw422016.N().S(` `)
 //line app/vmselect/prometheus/federate.qtpl:13
