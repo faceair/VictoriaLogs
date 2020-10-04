@@ -86,7 +86,7 @@ func FederateHandler(startTime time.Time, at *auth.Token, w http.ResponseWriter,
 		MaxTimestamp: end,
 		TagFilterss:  tagFilterss,
 	}
-	rss, isPartial, err := netstorage.ProcessSearchQuery(at, sq, true, deadline)
+	rss, isPartial, err := netstorage.ProcessSearchQuery(at, sq, 2, deadline)
 	if err != nil {
 		return fmt.Errorf("cannot fetch data for %q: %w", sq, err)
 	}
@@ -277,7 +277,7 @@ func exportHandler(at *auth.Token, w http.ResponseWriter, r *http.Request, match
 	if maxRowsPerLine > 0 {
 		writeLineFuncOrig := writeLineFunc
 		writeLineFunc = func(xb *exportBlock, resultsCh chan<- *quicktemplate.ByteBuffer) {
-			valuesOrig := xb.values
+			valuesOrig := xb.datas
 			timestampsOrig := xb.timestamps
 			values := valuesOrig
 			timestamps := timestampsOrig
@@ -295,11 +295,11 @@ func exportHandler(at *auth.Token, w http.ResponseWriter, r *http.Request, match
 					values = nil
 					timestamps = nil
 				}
-				xb.values = valuesChunk
+				xb.datas = valuesChunk
 				xb.timestamps = timestampsChunk
 				writeLineFuncOrig(xb, resultsCh)
 			}
-			xb.values = valuesOrig
+			xb.datas = valuesOrig
 			xb.timestamps = timestampsOrig
 		}
 	}
@@ -322,7 +322,7 @@ func exportHandler(at *auth.Token, w http.ResponseWriter, r *http.Request, match
 	resultsCh := make(chan *quicktemplate.ByteBuffer, runtime.GOMAXPROCS(-1))
 	doneCh := make(chan error)
 	if !reduceMemUsage {
-		rss, isPartial, err := netstorage.ProcessSearchQuery(at, sq, true, deadline)
+		rss, isPartial, err := netstorage.ProcessSearchQuery(at, sq, 2, deadline)
 		if err != nil {
 			return fmt.Errorf("cannot fetch data for %q: %w", sq, err)
 		}
@@ -338,7 +338,7 @@ func exportHandler(at *auth.Token, w http.ResponseWriter, r *http.Request, match
 				xb := exportBlockPool.Get().(*exportBlock)
 				xb.mn = &rs.MetricName
 				xb.timestamps = rs.Timestamps
-				xb.values = rs.Datas
+				xb.datas = rs.Datas
 				writeLineFunc(xb, resultsCh)
 				xb.reset()
 				exportBlockPool.Put(xb)
@@ -353,12 +353,12 @@ func exportHandler(at *auth.Token, w http.ResponseWriter, r *http.Request, match
 				if err := bw.Error(); err != nil {
 					return err
 				}
-				if err := b.UnmarshalData(); err != nil {
+				if err := b.UnmarshalData(true); err != nil {
 					return fmt.Errorf("cannot unmarshal block during export: %s", err)
 				}
 				xb := exportBlockPool.Get().(*exportBlock)
 				xb.mn = mn
-				xb.timestamps, xb.values = b.AppendRowsWithTimeRangeFilter(xb.timestamps[:0], xb.values[:0], tr)
+				xb.timestamps, xb.datas = b.AppendRowsWithTimeRangeFilter(xb.timestamps[:0], xb.datas[:0], tr)
 				if len(xb.timestamps) > 0 {
 					writeLineFunc(xb, resultsCh)
 				}
@@ -389,13 +389,13 @@ func exportHandler(at *auth.Token, w http.ResponseWriter, r *http.Request, match
 type exportBlock struct {
 	mn         *storage.MetricName
 	timestamps []int64
-	values     [][]byte
+	datas      [][]byte
 }
 
 func (xb *exportBlock) reset() {
 	xb.mn = nil
 	xb.timestamps = xb.timestamps[:0]
-	xb.values = xb.values[:0]
+	xb.datas = xb.datas[:0]
 }
 
 var exportBlockPool = &sync.Pool{
@@ -561,7 +561,7 @@ func labelValuesWithMatches(at *auth.Token, labelName string, matches []string, 
 		MaxTimestamp: end,
 		TagFilterss:  tagFilterss,
 	}
-	rss, isPartial, err := netstorage.ProcessSearchQuery(at, sq, false, deadline)
+	rss, isPartial, err := netstorage.ProcessSearchQuery(at, sq, 0, deadline)
 	if err != nil {
 		return nil, false, fmt.Errorf("cannot fetch data for %q: %w", sq, err)
 	}
@@ -739,7 +739,7 @@ func labelsWithMatches(at *auth.Token, matches []string, start, end int64, deadl
 		MaxTimestamp: end,
 		TagFilterss:  tagFilterss,
 	}
-	rss, isPartial, err := netstorage.ProcessSearchQuery(at, sq, false, deadline)
+	rss, isPartial, err := netstorage.ProcessSearchQuery(at, sq, 0, deadline)
 	if err != nil {
 		return nil, false, fmt.Errorf("cannot fetch data for %q: %w", sq, err)
 	}
@@ -836,7 +836,7 @@ func SeriesHandler(startTime time.Time, at *auth.Token, w http.ResponseWriter, r
 		MaxTimestamp: end,
 		TagFilterss:  tagFilterss,
 	}
-	rss, isPartial, err := netstorage.ProcessSearchQuery(at, sq, false, deadline)
+	rss, isPartial, err := netstorage.ProcessSearchQuery(at, sq, 0, deadline)
 	if err != nil {
 		return fmt.Errorf("cannot fetch data for %q: %w", sq, err)
 	}

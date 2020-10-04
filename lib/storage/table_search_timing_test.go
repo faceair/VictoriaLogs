@@ -134,7 +134,7 @@ func benchmarkTableSearch(b *testing.B, rowsCount, tsidsCount, tsidsSearch int, 
 			}
 			ts.Init(tb, tsids, tr)
 			for ts.NextBlock() {
-				ts.BlockRef.MustReadBlock(&tmpBlock, fetchData)
+				ts.BlockRef.MustReadBlock(&tmpBlock, 2)
 			}
 			ts.MustClose()
 		}

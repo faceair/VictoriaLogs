@@ -41,7 +41,7 @@ func benchmarkBlockStreamWriter(b *testing.B, ebs []Block, rowsCount int, writeR
 			if writeRows {
 				for i := range ebsCopy {
 					eb := &ebsCopy[i]
-					if err := eb.UnmarshalData(); err != nil {
+					if err := eb.UnmarshalData(true); err != nil {
 						panic(fmt.Errorf("cannot unmarshal block %d on loop %d: %w", i, loopCount, err))
 					}
 				}

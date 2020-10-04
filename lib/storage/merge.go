@@ -180,10 +180,10 @@ func appendRows(ob, ib *Block) {
 }
 
 func unmarshalAndCalibrateScale(b1, b2 *Block) error {
-	if err := b1.UnmarshalData(); err != nil {
+	if err := b1.UnmarshalData(true); err != nil {
 		return err
 	}
-	if err := b2.UnmarshalData(); err != nil {
+	if err := b2.UnmarshalData(true); err != nil {
 		return err
 	}
 	return nil

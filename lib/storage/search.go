@@ -33,18 +33,22 @@ func (br *BlockRef) init(p *part, bh *blockHeader) {
 // MustReadBlock reads block from br to dst.
 //
 // if fetchData is false, then only block header is read, otherwise all the data is read.
-func (br *BlockRef) MustReadBlock(dst *Block, fetchData bool) {
+func (br *BlockRef) MustReadBlock(dst *Block, fetchData uint8) {
 	dst.Reset()
 	dst.bh = br.bh
-	if !fetchData {
-		return
+
+	switch fetchData {
+	case 1:
+		dst.timestampsData = bytesutil.Resize(dst.timestampsData[:0], int(br.bh.TimestampsBlockSize))
+		br.p.timestampsFile.MustReadAt(dst.timestampsData, int64(br.bh.TimestampsBlockOffset))
+
+	case 2:
+		dst.timestampsData = bytesutil.Resize(dst.timestampsData[:0], int(br.bh.TimestampsBlockSize))
+		br.p.timestampsFile.MustReadAt(dst.timestampsData, int64(br.bh.TimestampsBlockOffset))
+
+		dst.valuesData = bytesutil.Resize(dst.valuesData[:0], int(br.bh.ValuesBlockSize))
+		br.p.valuesFile.MustReadAt(dst.valuesData, int64(br.bh.ValuesBlockOffset))
 	}
-
-	dst.timestampsData = bytesutil.Resize(dst.timestampsData[:0], int(br.bh.TimestampsBlockSize))
-	br.p.timestampsFile.MustReadAt(dst.timestampsData, int64(br.bh.TimestampsBlockOffset))
-
-	dst.valuesData = bytesutil.Resize(dst.valuesData[:0], int(br.bh.ValuesBlockSize))
-	br.p.valuesFile.MustReadAt(dst.valuesData, int64(br.bh.ValuesBlockOffset))
 }
 
 // MetricBlockRef contains reference to time series block for a single metric.

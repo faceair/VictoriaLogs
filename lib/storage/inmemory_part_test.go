@@ -97,7 +97,7 @@ func testInmemoryPartInitFromRows(t *testing.T, rows []rawRow, blocksCount int) 
 			t.Fatalf("unexpected MaxTimestamp in the block %+v; got %d; cannot be higher than %d", &bsr.Block, bh.MaxTimestamp, maxTimestamp)
 		}
 
-		if err := bsr.Block.UnmarshalData(); err != nil {
+		if err := bsr.Block.UnmarshalData(true); err != nil {
 			t.Fatalf("cannot unmarshal block #%d: %s", blockNum, err)
 		}
 

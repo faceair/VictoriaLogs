@@ -44,7 +44,7 @@ func StreamExportPrometheusLine(qw422016 *qt422016.Writer, xb *exportBlock) {
 //line app/vmselect/prometheus/export.qtpl:13
 		qw422016.N().S(` `)
 //line app/vmselect/prometheus/export.qtpl:14
-		qw422016.N().Z(xb.values[i])
+		qw422016.N().Z(xb.datas[i])
 //line app/vmselect/prometheus/export.qtpl:14
 		qw422016.N().S(` `)
 //line app/vmselect/prometheus/export.qtpl:15
@@ -101,9 +101,9 @@ func StreamExportJSONLine(qw422016 *qt422016.Writer, xb *exportBlock) {
 //line app/vmselect/prometheus/export.qtpl:23
 	qw422016.N().S(`,"values":[`)
 //line app/vmselect/prometheus/export.qtpl:25
-	if len(xb.values) > 0 {
+	if len(xb.datas) > 0 {
 //line app/vmselect/prometheus/export.qtpl:26
-		values := xb.values
+		values := xb.datas
 
 //line app/vmselect/prometheus/export.qtpl:27
 		qw422016.N().Z(values[0])
@@ -185,7 +185,7 @@ func StreamExportPromAPILine(qw422016 *qt422016.Writer, xb *exportBlock) {
 //line app/vmselect/prometheus/export.qtpl:49
 	qw422016.N().S(`,"values":`)
 //line app/vmselect/prometheus/export.qtpl:50
-	streamdatasWithTimestamps(qw422016, xb.values, xb.timestamps)
+	streamdatasWithTimestamps(qw422016, xb.datas, xb.timestamps)
 //line app/vmselect/prometheus/export.qtpl:50
 	qw422016.N().S(`}`)
 //line app/vmselect/prometheus/export.qtpl:52

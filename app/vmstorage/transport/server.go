@@ -647,7 +647,7 @@ func (s *Server) processVMSelectRequest(ctx *vmselectRequestCtx) error {
 	ctx.deadline = fasttime.UnixTimestamp() + uint64(timeout)
 
 	switch rpcName {
-	case "search_v4":
+	case "search_v5":
 		return s.processVMSelectSearchQuery(ctx)
 	case "labelValues_v2":
 		return s.processVMSelectLabelValues(ctx)
@@ -991,7 +991,7 @@ func (s *Server) processVMSelectSearchQuery(ctx *vmselectRequestCtx) error {
 	if len(tail) > 0 {
 		return fmt.Errorf("unexpected non-zero tail left after unmarshaling SearchQuery: (len=%d) %q", len(tail), tail)
 	}
-	fetchData, err := ctx.readBool()
+	fetchData, err := ctx.readByte()
 	if err != nil {
 		return fmt.Errorf("cannot read `fetchData` bool: %w", err)
 	}

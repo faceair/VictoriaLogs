@@ -104,7 +104,7 @@ func testBlockStreamReaderReadRows(mp *inmemoryPart, rows []rawRow) error {
 	bsr.InitFromInmemoryPart(mp)
 	rowsCount := 0
 	for bsr.NextBlock() {
-		if err := bsr.Block.UnmarshalData(); err != nil {
+		if err := bsr.Block.UnmarshalData(true); err != nil {
 			return fmt.Errorf("cannot unmarshal block data: %w", err)
 		}
 		for bsr.Block.nextRow() {
@@ -127,7 +127,7 @@ func testBlocksStreamReader(t *testing.T, rows []rawRow, expectedBlocksCount int
 	blocksCount := 0
 	rowsCount := 0
 	for bsr.NextBlock() {
-		if err := bsr.Block.UnmarshalData(); err != nil {
+		if err := bsr.Block.UnmarshalData(true); err != nil {
 			t.Fatalf("cannot unmarshal block data: %s", err)
 		}
 		for bsr.Block.nextRow() {

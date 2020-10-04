@@ -1249,7 +1249,7 @@ func testPartSearchSerial(p *part, tsids []TSID, tr TimeRange, expectedRawBlocks
 	var bs []Block
 	for ps.NextBlock() {
 		var b Block
-		ps.BlockRef.MustReadBlock(&b, true)
+		ps.BlockRef.MustReadBlock(&b, 2)
 		bs = append(bs, b)
 	}
 	if err := ps.Error(); err != nil {
@@ -1294,7 +1294,7 @@ func newTestRawBlocks(bs []Block, tr TimeRange) []rawBlock {
 }
 
 func newTestRawBlock(b *Block, tr TimeRange) rawBlock {
-	if err := b.UnmarshalData(); err != nil {
+	if err := b.UnmarshalData(true); err != nil {
 		panic(fmt.Errorf("cannot unmarshal block data: %w", err))
 	}
 	var rb rawBlock

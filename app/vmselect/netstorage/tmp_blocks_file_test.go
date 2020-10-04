@@ -52,20 +52,20 @@ func TestTmpBlocksFileConcurrent(t *testing.T) {
 func testTmpBlocksFile() error {
 	createBlock := func() *storage.Block {
 		rowsCount := rand.Intn(8000) + 1
-		var timestamps, values []int64
+		var timestamps []int64
+		var values [][]byte
 		ts := int64(rand.Intn(1023434))
 		for i := 0; i < rowsCount; i++ {
 			ts += int64(rand.Intn(1000) + 1)
 			timestamps = append(timestamps, ts)
-			values = append(values, int64(i*i+rand.Intn(20)))
+			values = append(values, []byte{byte(i*i + rand.Intn(20))})
 		}
 		tsid := &storage.TSID{
 			MetricID: 234211,
 		}
-		scale := int16(rand.Intn(123))
 		precisionBits := uint8(rand.Intn(63) + 1)
 		var b storage.Block
-		b.Init(tsid, timestamps, values, scale, precisionBits)
+		b.Init(tsid, timestamps, values, precisionBits)
 		_, _, _ = b.MarshalData(0, 0)
 		return &b
 	}
@@ -111,12 +111,12 @@ func testTmpBlocksFile() error {
 						for idx := range workCh {
 							addr := addrs[idx]
 							b := blocks[idx]
-							if err := b.UnmarshalData(); err != nil {
+							if err := b.UnmarshalData(true); err != nil {
 								return fmt.Errorf("cannot unmarshal data from the original block: %w", err)
 							}
 							b1.Reset()
 							tbf.MustReadBlockAt(&b1, addr)
-							if err := b1.UnmarshalData(); err != nil {
+							if err := b1.UnmarshalData(true); err != nil {
 								return fmt.Errorf("cannot unmarshal data from tbf: %w", err)
 							}
 							if b1.RowsCount() != b.RowsCount() {

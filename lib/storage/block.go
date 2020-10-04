@@ -227,7 +227,7 @@ func (b *Block) MarshalData(timestampsBlockOffset, valuesBlockOffset uint64) ([]
 }
 
 // UnmarshalData unmarshals block data.
-func (b *Block) UnmarshalData() error {
+func (b *Block) UnmarshalData(checkValues bool) error {
 	// blockHeader (b.bh) must be already unmarshaled.
 
 	if len(b.values) > 0 {
@@ -257,14 +257,18 @@ func (b *Block) UnmarshalData() error {
 	}
 	b.timestampsData = b.timestampsData[:0]
 
-	b.values, err = encoding.UnmarshalValues(b.values[:0], b.valuesData, b.bh.ValuesMarshalType, int(b.bh.RowsCount))
-	if err != nil {
-		return err
+	if len(b.valuesData) > 0 {
+		b.values, err = encoding.UnmarshalValues(b.values[:0], b.valuesData, b.bh.ValuesMarshalType, int(b.bh.RowsCount))
+		if err != nil {
+			return err
+		}
+		b.valuesData = b.valuesData[:0]
 	}
-	b.valuesData = b.valuesData[:0]
 
-	if len(b.timestamps) != len(b.values) {
-		return fmt.Errorf("timestamps and values count mismatch; got %d vs %d", len(b.timestamps), len(b.values))
+	if checkValues {
+		if len(b.timestamps) != len(b.values) {
+			return fmt.Errorf("timestamps and values count mismatch; got %d vs %d", len(b.timestamps), len(b.values))
+		}
 	}
 
 	b.nextIdx = 0
@@ -299,6 +303,9 @@ func (b *Block) filterTimestamps(tr TimeRange) ([]int64, [][]byte) {
 
 	if i == j {
 		return nil, nil
+	}
+	if len(b.values) == 0 {
+		return timestamps[i:j], nil
 	}
 	return timestamps[i:j], b.values[i:j]
 }
@@ -367,7 +374,7 @@ func (b *Block) UnmarshalPortable(src []byte) ([]byte, error) {
 	if err := b.bh.validate(); err != nil {
 		return src, fmt.Errorf("invalid blockHeader: %w", err)
 	}
-	if err := b.UnmarshalData(); err != nil {
+	if err := b.UnmarshalData(true); err != nil {
 		return src, fmt.Errorf("invalid data: %w", err)
 	}
 

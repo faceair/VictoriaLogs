@@ -11,7 +11,7 @@
 	{% code writeprometheusMetricName(bb, xb.mn) %}
 	{% for i, ts := range xb.timestamps %}
 		{%z= bb.B %}{% space %}
-		{%z= xb.values[i] %}{% space %}
+		{%z= xb.datas[i] %}{% space %}
 		{%dl= ts %}{% newline %}
 	{% endfor %}
 	{% code quicktemplate.ReleaseByteBuffer(bb) %}
@@ -22,8 +22,8 @@
 	{
 		"metric":{%= metricNameObject(xb.mn) %},
 		"values":[
-			{% if len(xb.values) > 0 %}
-				{% code values := xb.values %}
+			{% if len(xb.datas) > 0 %}
+				{% code values := xb.datas %}
 				{%z= values[0] %}
 				{% code values = values[1:] %}
 				{% for _, v := range values %}
@@ -47,7 +47,7 @@
 {% func ExportPromAPILine(xb *exportBlock) %}
 {
 	"metric": {%= metricNameObject(xb.mn) %},
-	"values": {%= datasWithTimestamps(xb.values, xb.timestamps) %}
+	"values": {%= datasWithTimestamps(xb.datas, xb.timestamps) %}
 }
 {% endfunc %}
 

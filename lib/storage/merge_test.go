@@ -428,7 +428,7 @@ func testMergeBlockStreams(t *testing.T, bsrs []*blockStreamReader, expectedBloc
 			t.Fatalf("too big MaxTimestamp in the blockHeader; got %d; cannot be bigger than %d", bsr1.Block.bh.MaxTimestamp, expectedMaxTimestamp)
 		}
 
-		if err := bsr1.Block.UnmarshalData(); err != nil {
+		if err := bsr1.Block.UnmarshalData(true); err != nil {
 			t.Fatalf("cannot unmarshal block from merged stream: %s", err)
 		}
 
