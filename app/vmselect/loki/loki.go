@@ -1,4 +1,4 @@
-package prometheus
+package loki
 
 import (
 	"flag"
@@ -338,6 +338,7 @@ func exportHandler(at *auth.Token, w http.ResponseWriter, r *http.Request, match
 				xb := exportBlockPool.Get().(*exportBlock)
 				xb.mn = &rs.MetricName
 				xb.timestamps = rs.Timestamps
+				xb.values = rs.Values
 				xb.datas = rs.Datas
 				writeLineFunc(xb, resultsCh)
 				xb.reset()
@@ -359,6 +360,9 @@ func exportHandler(at *auth.Token, w http.ResponseWriter, r *http.Request, match
 				xb := exportBlockPool.Get().(*exportBlock)
 				xb.mn = mn
 				xb.timestamps, xb.datas = b.AppendRowsWithTimeRangeFilter(xb.timestamps[:0], xb.datas[:0], tr)
+				for i := 0; i < len(xb.timestamps); i++ {
+					xb.values = append(xb.values, 1)
+				}
 				if len(xb.timestamps) > 0 {
 					writeLineFunc(xb, resultsCh)
 				}
@@ -389,12 +393,14 @@ func exportHandler(at *auth.Token, w http.ResponseWriter, r *http.Request, match
 type exportBlock struct {
 	mn         *storage.MetricName
 	timestamps []int64
+	values     []float64
 	datas      [][]byte
 }
 
 func (xb *exportBlock) reset() {
 	xb.mn = nil
 	xb.timestamps = xb.timestamps[:0]
+	xb.values = xb.values[:0]
 	xb.datas = xb.datas[:0]
 }
 

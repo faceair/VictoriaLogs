@@ -7,9 +7,9 @@
 // Federate writes rs in /federate format.
 // See https://prometheus.io/docs/prometheus/latest/federation/
 {% func Federate(rs *netstorage.Result) %}
-	{% if len(rs.Timestamps) == 0 || len(rs.Values) == 0 %}{% return %}{% endif %}
+	{% if len(rs.Timestamps) == 0 || len(rs.Datas) == 0 %}{% return %}{% endif %}
 	{%= prometheusMetricName(&rs.MetricName) %}{% space %}
-	{%f= rs.Values[len(rs.Values)-1] %}{% space %}
+	{%z= rs.Datas[len(rs.Datas)-1] %}{% space %}
 	{%dl= rs.Timestamps[len(rs.Timestamps)-1] %}{% newline %}
 {% endfunc %}
 

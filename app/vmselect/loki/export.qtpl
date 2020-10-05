@@ -55,7 +55,7 @@
 {
 	"status":"success",
 	"data":{
-		"resultType":"matrix",
+		"resultType":"streams",
 		"result":[
 			{% code bb, ok := <-resultsCh %}
 			{% if ok %}

@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/VictoriaMetrics/VictoriaMetrics/app/vmselect/loki"
 	"github.com/VictoriaMetrics/VictoriaMetrics/app/vmselect/netstorage"
-	"github.com/VictoriaMetrics/VictoriaMetrics/app/vmselect/prometheus"
 	"github.com/VictoriaMetrics/VictoriaMetrics/app/vmselect/querier"
 	"github.com/VictoriaMetrics/VictoriaMetrics/app/vmselect/searchutils"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/auth"
@@ -177,13 +177,13 @@ func requestHandler(w http.ResponseWriter, r *http.Request) bool {
 }
 
 func selectHandler(startTime time.Time, w http.ResponseWriter, r *http.Request, p *httpserver.Path, at *auth.Token) bool {
-	if strings.HasPrefix(p.Suffix, "prometheus/api/v1/label/") {
-		s := p.Suffix[len("prometheus/api/v1/label/"):]
+	if strings.HasPrefix(p.Suffix, "loki/api/v1/label/") {
+		s := p.Suffix[len("loki/api/v1/label/"):]
 		if strings.HasSuffix(s, "/values") {
 			labelValuesRequests.Inc()
 			labelName := s[:len(s)-len("/values")]
 			httpserver.EnableCORS(w, r)
-			if err := prometheus.LabelValuesHandler(startTime, at, labelName, w, r); err != nil {
+			if err := loki.LabelValuesHandler(startTime, at, labelName, w, r); err != nil {
 				labelValuesErrors.Inc()
 				sendPrometheusError(w, r, err)
 				return true
@@ -193,91 +193,91 @@ func selectHandler(startTime time.Time, w http.ResponseWriter, r *http.Request, 
 	}
 
 	switch p.Suffix {
-	case "prometheus/api/v1/query":
+	case "loki/api/v1/query":
 		queryRequests.Inc()
 		httpserver.EnableCORS(w, r)
-		if err := prometheus.QueryHandler(startTime, at, w, r); err != nil {
+		if err := loki.QueryHandler(startTime, at, w, r); err != nil {
 			queryErrors.Inc()
 			sendPrometheusError(w, r, err)
 			return true
 		}
 		return true
-	case "prometheus/api/v1/query_range":
+	case "loki/api/v1/query_range":
 		queryRangeRequests.Inc()
 		httpserver.EnableCORS(w, r)
-		if err := prometheus.QueryRangeHandler(startTime, at, w, r); err != nil {
+		if err := loki.QueryRangeHandler(startTime, at, w, r); err != nil {
 			queryRangeErrors.Inc()
 			sendPrometheusError(w, r, err)
 			return true
 		}
 		return true
-	case "prometheus/api/v1/series":
+	case "loki/api/v1/series":
 		seriesRequests.Inc()
 		httpserver.EnableCORS(w, r)
-		if err := prometheus.SeriesHandler(startTime, at, w, r); err != nil {
+		if err := loki.SeriesHandler(startTime, at, w, r); err != nil {
 			seriesErrors.Inc()
 			sendPrometheusError(w, r, err)
 			return true
 		}
 		return true
-	case "prometheus/api/v1/series/count":
+	case "loki/api/v1/series/count":
 		seriesCountRequests.Inc()
 		httpserver.EnableCORS(w, r)
-		if err := prometheus.SeriesCountHandler(startTime, at, w, r); err != nil {
+		if err := loki.SeriesCountHandler(startTime, at, w, r); err != nil {
 			seriesCountErrors.Inc()
 			sendPrometheusError(w, r, err)
 			return true
 		}
 		return true
-	case "prometheus/api/v1/labels":
+	case "loki/api/v1/labels":
 		labelsRequests.Inc()
 		httpserver.EnableCORS(w, r)
-		if err := prometheus.LabelsHandler(startTime, at, w, r); err != nil {
+		if err := loki.LabelsHandler(startTime, at, w, r); err != nil {
 			labelsErrors.Inc()
 			sendPrometheusError(w, r, err)
 			return true
 		}
 		return true
-	case "prometheus/api/v1/labels/count":
+	case "loki/api/v1/labels/count":
 		labelsCountRequests.Inc()
 		httpserver.EnableCORS(w, r)
-		if err := prometheus.LabelsCountHandler(startTime, at, w, r); err != nil {
+		if err := loki.LabelsCountHandler(startTime, at, w, r); err != nil {
 			labelsCountErrors.Inc()
 			sendPrometheusError(w, r, err)
 			return true
 		}
 		return true
-	case "prometheus/api/v1/status/tsdb":
+	case "loki/api/v1/status/tsdb":
 		statusTSDBRequests.Inc()
-		if err := prometheus.TSDBStatusHandler(startTime, at, w, r); err != nil {
+		if err := loki.TSDBStatusHandler(startTime, at, w, r); err != nil {
 			statusTSDBErrors.Inc()
 			sendPrometheusError(w, r, err)
 			return true
 		}
 		return true
-	case "prometheus/api/v1/status/active_queries":
+	case "loki/api/v1/status/active_queries":
 		statusActiveQueriesRequests.Inc()
 		querier.WriteActiveQueries(w)
 		return true
-	case "prometheus/api/v1/export":
+	case "loki/api/v1/export":
 		exportRequests.Inc()
-		if err := prometheus.ExportHandler(startTime, at, w, r); err != nil {
+		if err := loki.ExportHandler(startTime, at, w, r); err != nil {
 			exportErrors.Inc()
 			httpserver.Errorf(w, r, "error in %q: %s", r.URL.Path, err)
 			return true
 		}
 		return true
-	case "prometheus/api/v1/export/native":
+	case "loki/api/v1/export/native":
 		exportNativeRequests.Inc()
-		if err := prometheus.ExportNativeHandler(startTime, at, w, r); err != nil {
+		if err := loki.ExportNativeHandler(startTime, at, w, r); err != nil {
 			exportNativeErrors.Inc()
 			httpserver.Errorf(w, r, "error in %q: %s", r.URL.Path, err)
 			return true
 		}
 		return true
-	case "prometheus/federate":
+	case "loki/federate":
 		federateRequests.Inc()
-		if err := prometheus.FederateHandler(startTime, at, w, r); err != nil {
+		if err := loki.FederateHandler(startTime, at, w, r); err != nil {
 			federateErrors.Inc()
 			httpserver.Errorf(w, r, "error in %q: %s", r.URL.Path, err)
 			return true
@@ -292,7 +292,7 @@ func deleteHandler(startTime time.Time, w http.ResponseWriter, r *http.Request, 
 	switch p.Suffix {
 	case "prometheus/api/v1/admin/tsdb/delete_series":
 		deleteRequests.Inc()
-		if err := prometheus.DeleteHandler(startTime, at, r); err != nil {
+		if err := loki.DeleteHandler(startTime, at, r); err != nil {
 			deleteErrors.Inc()
 			httpserver.Errorf(w, r, "error in %q: %s", r.URL.Path, err)
 			return true
@@ -314,7 +314,7 @@ func sendPrometheusError(w http.ResponseWriter, r *http.Request, err error) {
 		statusCode = esc.StatusCode
 	}
 	w.WriteHeader(statusCode)
-	prometheus.WriteErrorResponse(w, statusCode, err)
+	loki.WriteErrorResponse(w, statusCode, err)
 }
 
 var (
