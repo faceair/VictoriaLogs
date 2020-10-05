@@ -163,6 +163,24 @@ func GetBool(r *http.Request, argKey string) bool {
 	}
 }
 
+// GetInt returns int value from the given argKey query arg.
+func GetInt(r *http.Request, argKey string, defaultValue int) (int, error) {
+	argValue := r.FormValue(argKey)
+	if len(argValue) == 0 {
+		return defaultValue, nil
+	}
+	return strconv.Atoi(argValue)
+}
+
+// GetString returns string value from the given argKey query arg.
+func GetString(r *http.Request, argKey string, defaultValue string) string {
+	argValue := r.FormValue(argKey)
+	if len(argValue) == 0 {
+		return defaultValue
+	}
+	return argValue
+}
+
 // GetDenyPartialResponse returns whether partial responses are denied.
 func GetDenyPartialResponse(r *http.Request) bool {
 	if *denyPartialResponse {

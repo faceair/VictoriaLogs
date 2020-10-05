@@ -87,6 +87,8 @@ type EvalConfig struct {
 	Start     int64
 	End       int64
 	Step      int64
+	Limit     int
+	Forward   bool
 
 	// QuotedRemoteAddr contains quoted remote address.
 	QuotedRemoteAddr string
@@ -111,6 +113,8 @@ func newEvalConfig(src *EvalConfig) *EvalConfig {
 	ec.Start = src.Start
 	ec.End = src.End
 	ec.Step = src.Step
+	ec.Limit = src.Limit
+	ec.Forward = src.Forward
 	ec.Deadline = src.Deadline
 	ec.MayCache = src.MayCache
 	ec.LookbackDelta = src.LookbackDelta
@@ -180,16 +184,15 @@ func evalExpr(ec *EvalConfig, e logql.Expr, isRoot bool) ([]*timeseries, error) 
 	if me, ok := e.(*logql.MetricExpr); ok {
 		if isRoot {
 			return evalMetricExpr(ec, me)
-		} else {
-			re := &logql.RollupExpr{
-				Expr: me,
-			}
-			rv, err := evalRollupFunc(ec, "default_rollup", rollupDefault, e, re, nil)
-			if err != nil {
-				return nil, fmt.Errorf(`cannot evaluate %q: %w`, me.AppendString(nil), err)
-			}
-			return rv, nil
 		}
+		re := &logql.RollupExpr{
+			Expr: me,
+		}
+		rv, err := evalRollupFunc(ec, "default_rollup", rollupDefault, e, re, nil)
+		if err != nil {
+			return nil, fmt.Errorf(`cannot evaluate %q: %w`, me.AppendString(nil), err)
+		}
+		return rv, nil
 	}
 	if re, ok := e.(*logql.RollupExpr); ok {
 		rv, err := evalRollupFunc(ec, "d efault_rollup", rollupDefault, e, re, nil)
@@ -629,12 +632,11 @@ func evalMetricExpr(ec *EvalConfig, me *logql.MetricExpr) ([]*timeseries, error)
 
 	// Fetch the remaining part of the result.
 	tfs := toTagFilters(me.LabelFilters)
-	minTimestamp := ec.Start - maxSilenceInterval - ec.Step
 
 	sq := &storage.SearchQuery{
 		AccountID:    ec.AuthToken.AccountID,
 		ProjectID:    ec.AuthToken.ProjectID,
-		MinTimestamp: minTimestamp,
+		MinTimestamp: ec.Start,
 		MaxTimestamp: ec.End,
 		TagFilterss:  [][]storage.TagFilter{tfs},
 	}
@@ -652,24 +654,49 @@ func evalMetricExpr(ec *EvalConfig, me *logql.MetricExpr) ([]*timeseries, error)
 		return nil, nil
 	}
 
-	// Evaluate rollup
+	limit, forward := ec.Limit, ec.Forward
+
 	var tss []*timeseries
-	var tssLock sync.Mutex
+	var tssLock sync.RWMutex
+
+	errReachedLimit := fmt.Errorf("reached limit")
 	err = rss.RunParallel(func(rs *netstorage.Result, workerID uint) error {
+		tssLock.Lock()
+
 		var ts timeseries
 
-		ts.MetricName.CopyFrom(&rs.MetricName)
-		ts.Values = rs.Values
-		ts.Datas = rs.Datas
-		ts.Timestamps = rs.Timestamps
-		ts.denyReuse = true
+		if forward {
+			for i := len(rs.Timestamps) - 1; i >= 0; i-- {
+				if limit <= 0 {
+					break
+				}
+				limit--
+				ts.Datas = append(ts.Datas, rs.Datas[i])
+				ts.Values = append(ts.Values, rs.Values[i])
+				ts.Timestamps = append(ts.Timestamps, rs.Timestamps[i])
+			}
+		} else {
+			for i := 0; i < len(rs.Timestamps); i++ {
+				if limit <= 0 {
+					break
+				}
+				limit--
+				ts.Datas = append(ts.Datas, rs.Datas[i])
+				ts.Values = append(ts.Values, rs.Values[i])
+				ts.Timestamps = append(ts.Timestamps, rs.Timestamps[i])
+			}
+		}
 
-		tssLock.Lock()
-		tss = append(tss, &ts)
+		if len(ts.Timestamps) > 0 {
+			ts.MetricName.CopyFrom(&rs.MetricName)
+			ts.denyReuse = true
+			tss = append(tss, &ts)
+		}
+
 		tssLock.Unlock()
 		return nil
 	})
-	if err != nil {
+	if err != errReachedLimit && err != nil {
 		return nil, err
 	}
 

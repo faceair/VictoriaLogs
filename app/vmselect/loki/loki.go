@@ -908,6 +908,12 @@ func QueryHandler(startTime time.Time, at *auth.Token, w http.ResponseWriter, r 
 	if step <= 0 {
 		step = defaultStep
 	}
+	limit, err := searchutils.GetInt(r, "limit", defaultLimit)
+	if err != nil {
+		return err
+	}
+	forward := searchutils.GetString(r, "direction", "backward") == "forward"
+
 	deadline := searchutils.GetDeadlineForQuery(r, startTime)
 
 	if len(query) > maxQueryLen.N {
@@ -950,7 +956,7 @@ func QueryHandler(startTime time.Time, at *auth.Token, w http.ResponseWriter, r 
 		start -= offset
 		end := start
 		start = end - window
-		if err := queryRangeHandler(startTime, at, w, childQuery, start, end, step, r, ct); err != nil {
+		if err := queryRangeHandler(startTime, at, w, childQuery, start, end, step, limit, forward, r, ct); err != nil {
 			return fmt.Errorf("error when executing query=%q on the time range (start=%d, end=%d, step=%d): %w", childQuery, start, end, step, err)
 		}
 		queryDuration.UpdateDuration(startTime)
@@ -1025,6 +1031,9 @@ func parsePositiveDuration(s string, step int64) (int64, error) {
 	return logql.PositiveDurationValue(s, step)
 }
 
+// Default limit used if not set.
+const defaultLimit = 100
+
 // QueryRangeHandler processes /api/v1/query_range request.
 //
 // See https://prometheus.io/docs/prometheus/latest/querying/api/#range-queries
@@ -1046,14 +1055,21 @@ func QueryRangeHandler(startTime time.Time, at *auth.Token, w http.ResponseWrite
 	if err != nil {
 		return err
 	}
-	if err := queryRangeHandler(startTime, at, w, query, start, end, step, r, ct); err != nil {
+	limit, err := searchutils.GetInt(r, "limit", defaultLimit)
+	if err != nil {
+		return err
+	}
+	forward := searchutils.GetString(r, "direction", "backward") == "forward"
+
+	if err := queryRangeHandler(startTime, at, w, query, start, end, step, limit, forward, r, ct); err != nil {
 		return fmt.Errorf("error when executing query=%q on the time range (start=%d, end=%d, step=%d): %w", query, start, end, step, err)
 	}
 	queryRangeDuration.UpdateDuration(startTime)
 	return nil
 }
 
-func queryRangeHandler(startTime time.Time, at *auth.Token, w http.ResponseWriter, query string, start, end, step int64, r *http.Request, ct int64) error {
+func queryRangeHandler(startTime time.Time, at *auth.Token, w http.ResponseWriter, query string, start, end, step int64,
+	limit int, forward bool, r *http.Request, ct int64) error {
 	deadline := searchutils.GetDeadlineForQuery(r, startTime)
 	mayCache := !searchutils.GetBool(r, "nocache")
 	lookbackDelta, err := getMaxLookback(r)
@@ -1080,6 +1096,8 @@ func queryRangeHandler(startTime time.Time, at *auth.Token, w http.ResponseWrite
 		Start:            start,
 		End:              end,
 		Step:             step,
+		Limit:            limit,
+		Forward:          forward,
 		QuotedRemoteAddr: httpserver.GetQuotedRemoteAddr(r),
 		Deadline:         deadline,
 		MayCache:         mayCache,
