@@ -20,7 +20,7 @@ var logSlowQueryDuration = flag.Duration("search.logSlowQueryDuration", 5*time.S
 var slowQueries = metrics.NewCounter(`vm_slow_queries_total`)
 
 // Exec executes q for the given ec.
-func Exec(ec *EvalConfig, q string, isFirstPointOnly bool) ([]netstorage.Result, error) {
+func Exec(ec *EvalConfig, q string, isFirstPointOnly bool) ([]netstorage.Result, logql.Expr, error) {
 	if *logSlowQueryDuration > 0 {
 		startTime := time.Now()
 		defer func() {
@@ -37,14 +37,14 @@ func Exec(ec *EvalConfig, q string, isFirstPointOnly bool) ([]netstorage.Result,
 
 	e, err := parsePromQLWithCache(q)
 	if err != nil {
-		return nil, err
+		return nil, e, err
 	}
 
 	qid := activeQueriesV.Add(ec, q)
-	rv, err := evalExpr(ec, e)
+	rv, err := evalExpr(ec, e, true)
 	activeQueriesV.Remove(qid)
 	if err != nil {
-		return nil, err
+		return nil, e, err
 	}
 
 	if isFirstPointOnly {
@@ -58,9 +58,9 @@ func Exec(ec *EvalConfig, q string, isFirstPointOnly bool) ([]netstorage.Result,
 	maySort := maySortResults(e, rv)
 	result, err := timeseriesToResult(rv, maySort)
 	if err != nil {
-		return nil, err
+		return nil, e, err
 	}
-	return result, err
+	return result, e, err
 }
 
 func maySortResults(e logql.Expr, tss []*timeseries) bool {
@@ -96,6 +96,7 @@ func timeseriesToResult(tss []*timeseries, maySort bool) ([]netstorage.Result, e
 		rs := &result[i]
 		rs.MetricNameMarshaled = append(rs.MetricNameMarshaled[:0], bb.B...)
 		rs.MetricName.CopyFrom(&ts.MetricName)
+		rs.Datas = append(rs.Datas[:0], ts.Datas...)
 		rs.Values = append(rs.Values[:0], ts.Values...)
 		rs.Timestamps = append(rs.Timestamps[:0], ts.Timestamps...)
 	}
@@ -115,7 +116,7 @@ func removeNaNs(tss []*timeseries) []*timeseries {
 	for _, ts := range tss {
 		allNans := true
 		for _, v := range ts.Values {
-			if math.IsNaN(v) {
+			if !math.IsNaN(v) {
 				allNans = false
 				break
 			}

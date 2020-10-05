@@ -978,7 +978,7 @@ func QueryHandler(startTime time.Time, at *auth.Token, w http.ResponseWriter, r 
 
 		DenyPartialResponse: searchutils.GetDenyPartialResponse(r),
 	}
-	result, err := querier.Exec(&ec, query, true)
+	result, e, err := querier.Exec(&ec, query, true)
 	if err != nil {
 		return fmt.Errorf("error when executing query=%q for (time=%d, step=%d): %w", query, start, step, err)
 	}
@@ -994,7 +994,14 @@ func QueryHandler(startTime time.Time, at *auth.Token, w http.ResponseWriter, r 
 	w.Header().Set("Content-Type", "application/json")
 	bw := bufferedwriter.Get(w)
 	defer bufferedwriter.Put(bw)
-	WriteQueryResponse(bw, result)
+
+	switch e.(type) {
+	case *logql.BinaryOpExpr, *logql.MetricExpr:
+		WriteQueryDatasResponse(bw, result)
+	default:
+		WriteQueryResponse(bw, result)
+	}
+
 	if err := bw.Flush(); err != nil {
 		return err
 	}
@@ -1080,23 +1087,35 @@ func queryRangeHandler(startTime time.Time, at *auth.Token, w http.ResponseWrite
 
 		DenyPartialResponse: searchutils.GetDenyPartialResponse(r),
 	}
-	result, err := querier.Exec(&ec, query, false)
+	result, e, err := querier.Exec(&ec, query, false)
 	if err != nil {
 		return fmt.Errorf("cannot execute query: %w", err)
 	}
-	queryOffset := getLatencyOffsetMilliseconds()
-	if ct-queryOffset < end {
-		result = adjustLastPoints(result, ct-queryOffset, ct+step)
-	}
-
-	// Remove NaN values as Prometheus does.
-	// See https://github.com/VictoriaMetrics/VictoriaMetrics/issues/153
-	result = removeEmptyValuesAndTimeseries(result)
 
 	w.Header().Set("Content-Type", "application/json")
 	bw := bufferedwriter.Get(w)
 	defer bufferedwriter.Put(bw)
-	WriteQueryRangeResponse(bw, result)
+
+	switch e.(type) {
+	case *logql.BinaryOpExpr, *logql.MetricExpr:
+		// Remove NaN values as Prometheus does.
+		// See https://github.com/VictoriaMetrics/VictoriaMetrics/issues/153
+		result = removeEmptyValuesAndTimeseries(result)
+
+		WriteQueryRangeDatasResponse(bw, result)
+	default:
+		queryOffset := getLatencyOffsetMilliseconds()
+		if ct-queryOffset < end {
+			result = adjustLastPoints(result, ct-queryOffset, ct+step)
+		}
+
+		// Remove NaN values as Prometheus does.
+		// See https://github.com/VictoriaMetrics/VictoriaMetrics/issues/153
+		result = removeEmptyValuesAndTimeseries(result)
+
+		WriteQueryRangeResponse(bw, result)
+	}
+
 	if err := bw.Flush(); err != nil {
 		return err
 	}
@@ -1123,16 +1142,22 @@ func removeEmptyValuesAndTimeseries(tss []netstorage.Result) []netstorage.Result
 		}
 
 		// Slow path: remove NaNs.
+		srcDatas := ts.Datas
 		srcTimestamps := ts.Timestamps
+		dstDatas := ts.Datas[:0]
 		dstValues := ts.Values[:0]
 		dstTimestamps := ts.Timestamps[:0]
 		for j, v := range ts.Values {
 			if math.IsNaN(v) {
 				continue
 			}
+			if srcDatas != nil {
+				dstDatas = append(dstDatas, srcDatas[j])
+			}
 			dstValues = append(dstValues, v)
 			dstTimestamps = append(dstTimestamps, srcTimestamps[j])
 		}
+		ts.Datas = dstDatas
 		ts.Values = dstValues
 		ts.Timestamps = dstTimestamps
 		if len(ts.Values) > 0 {

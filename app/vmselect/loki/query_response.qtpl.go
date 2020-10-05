@@ -92,3 +92,72 @@ func QueryResponse(rs []netstorage.Result) string {
 	return qs422016
 //line app/vmselect/loki/query_response.qtpl:31
 }
+
+//line app/vmselect/loki/query_response.qtpl:33
+func StreamQueryDatasResponse(qw422016 *qt422016.Writer, rs []netstorage.Result) {
+//line app/vmselect/loki/query_response.qtpl:33
+	qw422016.N().S(`{"status":"success","data":{"resultType":"streams","result":[`)
+//line app/vmselect/loki/query_response.qtpl:39
+	if len(rs) > 0 {
+//line app/vmselect/loki/query_response.qtpl:39
+		qw422016.N().S(`{"metric":`)
+//line app/vmselect/loki/query_response.qtpl:41
+		streammetricNameObject(qw422016, &rs[0].MetricName)
+//line app/vmselect/loki/query_response.qtpl:41
+		qw422016.N().S(`,"value":`)
+//line app/vmselect/loki/query_response.qtpl:42
+		streammetricDataRow(qw422016, rs[0].Timestamps[0], rs[0].Datas[0])
+//line app/vmselect/loki/query_response.qtpl:42
+		qw422016.N().S(`}`)
+//line app/vmselect/loki/query_response.qtpl:44
+		rs = rs[1:]
+
+//line app/vmselect/loki/query_response.qtpl:45
+		for i := range rs {
+//line app/vmselect/loki/query_response.qtpl:46
+			r := &rs[i]
+
+//line app/vmselect/loki/query_response.qtpl:46
+			qw422016.N().S(`,{"metric":`)
+//line app/vmselect/loki/query_response.qtpl:48
+			streammetricNameObject(qw422016, &r.MetricName)
+//line app/vmselect/loki/query_response.qtpl:48
+			qw422016.N().S(`,"value":`)
+//line app/vmselect/loki/query_response.qtpl:49
+			streammetricDataRow(qw422016, r.Timestamps[0], r.Datas[0])
+//line app/vmselect/loki/query_response.qtpl:49
+			qw422016.N().S(`}`)
+//line app/vmselect/loki/query_response.qtpl:51
+		}
+//line app/vmselect/loki/query_response.qtpl:52
+	}
+//line app/vmselect/loki/query_response.qtpl:52
+	qw422016.N().S(`]}}`)
+//line app/vmselect/loki/query_response.qtpl:56
+}
+
+//line app/vmselect/loki/query_response.qtpl:56
+func WriteQueryDatasResponse(qq422016 qtio422016.Writer, rs []netstorage.Result) {
+//line app/vmselect/loki/query_response.qtpl:56
+	qw422016 := qt422016.AcquireWriter(qq422016)
+//line app/vmselect/loki/query_response.qtpl:56
+	StreamQueryDatasResponse(qw422016, rs)
+//line app/vmselect/loki/query_response.qtpl:56
+	qt422016.ReleaseWriter(qw422016)
+//line app/vmselect/loki/query_response.qtpl:56
+}
+
+//line app/vmselect/loki/query_response.qtpl:56
+func QueryDatasResponse(rs []netstorage.Result) string {
+//line app/vmselect/loki/query_response.qtpl:56
+	qb422016 := qt422016.AcquireByteBuffer()
+//line app/vmselect/loki/query_response.qtpl:56
+	WriteQueryDatasResponse(qb422016, rs)
+//line app/vmselect/loki/query_response.qtpl:56
+	qs422016 := string(qb422016.B)
+//line app/vmselect/loki/query_response.qtpl:56
+	qt422016.ReleaseByteBuffer(qb422016)
+//line app/vmselect/loki/query_response.qtpl:56
+	return qs422016
+//line app/vmselect/loki/query_response.qtpl:56
+}

@@ -1,6 +1,7 @@
 package querier
 
 import (
+	"bytes"
 	"fmt"
 	"math"
 	"strings"
@@ -21,7 +22,6 @@ var binaryOpFuncs = map[string]binaryOpFunc{
 
 	// cmp ops
 	"==": newBinaryOpCmpFunc(binaryop.Eq),
-	"!=": newBinaryOpCmpFunc(binaryop.Neq),
 	">":  newBinaryOpCmpFunc(binaryop.Gt),
 	"<":  newBinaryOpCmpFunc(binaryop.Lt),
 	">=": newBinaryOpCmpFunc(binaryop.Gte),
@@ -31,6 +31,13 @@ var binaryOpFuncs = map[string]binaryOpFunc{
 	"and":    binaryOpAnd,
 	"or":     binaryOpOr,
 	"unless": binaryOpUnless,
+
+	// extend for loki Logql
+	// https://grafana.com/docs/loki/latest/logql/#filter-expression
+	"|=": binaryOpContains,
+	"!=": binaryOpNotContains, // backward compatibility to neq
+	"|~": binaryOpMatch,
+	"!~": binaryOpNotMatch,
 
 	// New ops
 	"if":      newBinaryOpArithFunc(binaryop.If),
@@ -44,9 +51,11 @@ func getBinaryOpFunc(op string) binaryOpFunc {
 }
 
 type binaryOpFuncArg struct {
-	be    *logql.BinaryOpExpr
-	left  []*timeseries
-	right []*timeseries
+	be        *logql.BinaryOpExpr
+	leftExpr  logql.Expr
+	left      []*timeseries
+	rightExpr logql.Expr
+	right     []*timeseries
 }
 
 type binaryOpFunc func(bfa *binaryOpFuncArg) ([]*timeseries, error)
@@ -349,6 +358,127 @@ func binaryOpUnless(bfa *binaryOpFuncArg) ([]*timeseries, error) {
 			for i, v := range valuesRight {
 				if !math.IsNaN(v) {
 					valuesLeft[i] = nan
+				}
+			}
+		}
+		tssLeft = removeNaNs(tssLeft)
+		rvs = append(rvs, tssLeft...)
+	}
+	return rvs, nil
+}
+
+func binaryOpContains(bfa *binaryOpFuncArg) ([]*timeseries, error) {
+	se, ok := bfa.rightExpr.(*logql.StringExpr)
+	if !ok {
+		return binaryOpNeqFunc(bfa)
+	}
+	mLeft, _ := createTimeseriesMapByTagSet(bfa.be, bfa.left, bfa.right)
+	keyword := []byte(se.S)
+
+	var rvs []*timeseries
+	for _, tssLeft := range mLeft {
+		for _, tsLeft := range tssLeft {
+			valuesLeft := tsLeft.Values
+			datasLeft := tsLeft.Datas
+			for i, v := range datasLeft {
+				if len(v) != 0 {
+					if !bytes.Contains(v, keyword) {
+						valuesLeft[i] = nan
+						datasLeft[i] = nanByes
+					}
+				}
+			}
+		}
+		tssLeft = removeNaNs(tssLeft)
+		rvs = append(rvs, tssLeft...)
+	}
+	return rvs, nil
+}
+
+// modify for compatible loki `!=` operator
+var binaryOpNeqFunc = newBinaryOpCmpFunc(binaryop.Neq)
+
+func binaryOpNotContains(bfa *binaryOpFuncArg) ([]*timeseries, error) {
+	se, ok := bfa.rightExpr.(*logql.StringExpr)
+	if !ok {
+		return binaryOpNeqFunc(bfa)
+	}
+	mLeft, _ := createTimeseriesMapByTagSet(bfa.be, bfa.left, bfa.right)
+	keyword := []byte(se.S)
+
+	var rvs []*timeseries
+	for _, tssLeft := range mLeft {
+		for _, tsLeft := range tssLeft {
+			valuesLeft := tsLeft.Values
+			datasLeft := tsLeft.Datas
+			for i, v := range datasLeft {
+				if len(v) != 0 {
+					if bytes.Contains(v, keyword) {
+						valuesLeft[i] = nan
+						datasLeft[i] = nanByes
+					}
+				}
+			}
+		}
+		tssLeft = removeNaNs(tssLeft)
+		rvs = append(rvs, tssLeft...)
+	}
+	return rvs, nil
+}
+
+func binaryOpMatch(bfa *binaryOpFuncArg) ([]*timeseries, error) {
+	se, ok := bfa.rightExpr.(*logql.StringExpr)
+	if !ok {
+		return binaryOpNeqFunc(bfa)
+	}
+	mLeft, _ := createTimeseriesMapByTagSet(bfa.be, bfa.left, bfa.right)
+	re, err := logql.CompileRegexp(se.S)
+	if err != nil {
+		return nil, err
+	}
+
+	var rvs []*timeseries
+	for _, tssLeft := range mLeft {
+		for _, tsLeft := range tssLeft {
+			valuesLeft := tsLeft.Values
+			datasLeft := tsLeft.Datas
+			for i, v := range datasLeft {
+				if len(v) != 0 {
+					if !re.Match(v) {
+						valuesLeft[i] = nan
+						datasLeft[i] = nanByes
+					}
+				}
+			}
+		}
+		tssLeft = removeNaNs(tssLeft)
+		rvs = append(rvs, tssLeft...)
+	}
+	return rvs, nil
+}
+
+func binaryOpNotMatch(bfa *binaryOpFuncArg) ([]*timeseries, error) {
+	se, ok := bfa.rightExpr.(*logql.StringExpr)
+	if !ok {
+		return binaryOpNeqFunc(bfa)
+	}
+	mLeft, _ := createTimeseriesMapByTagSet(bfa.be, bfa.left, bfa.right)
+	re, err := logql.CompileRegexp(se.S)
+	if err != nil {
+		return nil, err
+	}
+
+	var rvs []*timeseries
+	for _, tssLeft := range mLeft {
+		for _, tsLeft := range tssLeft {
+			valuesLeft := tsLeft.Values
+			datasLeft := tsLeft.Datas
+			for i, v := range datasLeft {
+				if len(v) != 0 {
+					if re.Match(v) {
+						valuesLeft[i] = nan
+						datasLeft[i] = nanByes
+					}
 				}
 			}
 		}

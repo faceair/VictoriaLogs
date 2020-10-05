@@ -373,6 +373,10 @@ var (
 	inf = math.Inf(1)
 )
 
+var (
+	nanByes []byte = nil
+)
+
 // The maximum interval without previous rows.
 const maxSilenceInterval = 5 * 60 * 1000
 

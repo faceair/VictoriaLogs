@@ -116,3 +116,96 @@ func queryRangeLine(r *netstorage.Result) string {
 	return qs422016
 //line app/vmselect/loki/query_range_response.qtpl:31
 }
+
+//line app/vmselect/loki/query_range_response.qtpl:33
+func StreamQueryRangeDatasResponse(qw422016 *qt422016.Writer, rs []netstorage.Result) {
+//line app/vmselect/loki/query_range_response.qtpl:33
+	qw422016.N().S(`{"status":"success","data":{"resultType":"streams","result":[`)
+//line app/vmselect/loki/query_range_response.qtpl:39
+	if len(rs) > 0 {
+//line app/vmselect/loki/query_range_response.qtpl:40
+		streamdatasQueryRangeLine(qw422016, &rs[0])
+//line app/vmselect/loki/query_range_response.qtpl:41
+		rs = rs[1:]
+
+//line app/vmselect/loki/query_range_response.qtpl:42
+		for i := range rs {
+//line app/vmselect/loki/query_range_response.qtpl:42
+			qw422016.N().S(`,`)
+//line app/vmselect/loki/query_range_response.qtpl:43
+			streamdatasQueryRangeLine(qw422016, &rs[i])
+//line app/vmselect/loki/query_range_response.qtpl:44
+		}
+//line app/vmselect/loki/query_range_response.qtpl:45
+	}
+//line app/vmselect/loki/query_range_response.qtpl:45
+	qw422016.N().S(`]}}`)
+//line app/vmselect/loki/query_range_response.qtpl:49
+}
+
+//line app/vmselect/loki/query_range_response.qtpl:49
+func WriteQueryRangeDatasResponse(qq422016 qtio422016.Writer, rs []netstorage.Result) {
+//line app/vmselect/loki/query_range_response.qtpl:49
+	qw422016 := qt422016.AcquireWriter(qq422016)
+//line app/vmselect/loki/query_range_response.qtpl:49
+	StreamQueryRangeDatasResponse(qw422016, rs)
+//line app/vmselect/loki/query_range_response.qtpl:49
+	qt422016.ReleaseWriter(qw422016)
+//line app/vmselect/loki/query_range_response.qtpl:49
+}
+
+//line app/vmselect/loki/query_range_response.qtpl:49
+func QueryRangeDatasResponse(rs []netstorage.Result) string {
+//line app/vmselect/loki/query_range_response.qtpl:49
+	qb422016 := qt422016.AcquireByteBuffer()
+//line app/vmselect/loki/query_range_response.qtpl:49
+	WriteQueryRangeDatasResponse(qb422016, rs)
+//line app/vmselect/loki/query_range_response.qtpl:49
+	qs422016 := string(qb422016.B)
+//line app/vmselect/loki/query_range_response.qtpl:49
+	qt422016.ReleaseByteBuffer(qb422016)
+//line app/vmselect/loki/query_range_response.qtpl:49
+	return qs422016
+//line app/vmselect/loki/query_range_response.qtpl:49
+}
+
+//line app/vmselect/loki/query_range_response.qtpl:51
+func streamdatasQueryRangeLine(qw422016 *qt422016.Writer, r *netstorage.Result) {
+//line app/vmselect/loki/query_range_response.qtpl:51
+	qw422016.N().S(`{"metric":`)
+//line app/vmselect/loki/query_range_response.qtpl:53
+	streammetricNameObject(qw422016, &r.MetricName)
+//line app/vmselect/loki/query_range_response.qtpl:53
+	qw422016.N().S(`,"values":`)
+//line app/vmselect/loki/query_range_response.qtpl:54
+	streamdatasWithTimestamps(qw422016, r.Datas, r.Timestamps)
+//line app/vmselect/loki/query_range_response.qtpl:54
+	qw422016.N().S(`}`)
+//line app/vmselect/loki/query_range_response.qtpl:56
+}
+
+//line app/vmselect/loki/query_range_response.qtpl:56
+func writedatasQueryRangeLine(qq422016 qtio422016.Writer, r *netstorage.Result) {
+//line app/vmselect/loki/query_range_response.qtpl:56
+	qw422016 := qt422016.AcquireWriter(qq422016)
+//line app/vmselect/loki/query_range_response.qtpl:56
+	streamdatasQueryRangeLine(qw422016, r)
+//line app/vmselect/loki/query_range_response.qtpl:56
+	qt422016.ReleaseWriter(qw422016)
+//line app/vmselect/loki/query_range_response.qtpl:56
+}
+
+//line app/vmselect/loki/query_range_response.qtpl:56
+func datasQueryRangeLine(r *netstorage.Result) string {
+//line app/vmselect/loki/query_range_response.qtpl:56
+	qb422016 := qt422016.AcquireByteBuffer()
+//line app/vmselect/loki/query_range_response.qtpl:56
+	writedatasQueryRangeLine(qb422016, r)
+//line app/vmselect/loki/query_range_response.qtpl:56
+	qs422016 := string(qb422016.B)
+//line app/vmselect/loki/query_range_response.qtpl:56
+	qt422016.ReleaseByteBuffer(qb422016)
+//line app/vmselect/loki/query_range_response.qtpl:56
+	return qs422016
+//line app/vmselect/loki/query_range_response.qtpl:56
+}

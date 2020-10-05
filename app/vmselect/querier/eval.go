@@ -176,19 +176,23 @@ func getTimestamps(start, end, step int64) []int64 {
 	return timestamps
 }
 
-func evalExpr(ec *EvalConfig, e logql.Expr) ([]*timeseries, error) {
+func evalExpr(ec *EvalConfig, e logql.Expr, isRoot bool) ([]*timeseries, error) {
 	if me, ok := e.(*logql.MetricExpr); ok {
-		re := &logql.RollupExpr{
-			Expr: me,
+		if isRoot {
+			return evalMetricExpr(ec, me)
+		} else {
+			re := &logql.RollupExpr{
+				Expr: me,
+			}
+			rv, err := evalRollupFunc(ec, "default_rollup", rollupDefault, e, re, nil)
+			if err != nil {
+				return nil, fmt.Errorf(`cannot evaluate %q: %w`, me.AppendString(nil), err)
+			}
+			return rv, nil
 		}
-		rv, err := evalRollupFunc(ec, "default_rollup", rollupDefault, e, re, nil)
-		if err != nil {
-			return nil, fmt.Errorf(`cannot evaluate %q: %w`, me.AppendString(nil), err)
-		}
-		return rv, nil
 	}
 	if re, ok := e.(*logql.RollupExpr); ok {
-		rv, err := evalRollupFunc(ec, "default_rollup", rollupDefault, e, re, nil)
+		rv, err := evalRollupFunc(ec, "d efault_rollup", rollupDefault, e, re, nil)
 		if err != nil {
 			return nil, fmt.Errorf(`cannot evaluate %q: %w`, re.AppendString(nil), err)
 		}
@@ -268,11 +272,11 @@ func evalExpr(ec *EvalConfig, e logql.Expr) ([]*timeseries, error) {
 		return rv, nil
 	}
 	if be, ok := e.(*logql.BinaryOpExpr); ok {
-		left, err := evalExpr(ec, be.Left)
+		left, err := evalExpr(ec, be.Left, isRoot)
 		if err != nil {
 			return nil, err
 		}
-		right, err := evalExpr(ec, be.Right)
+		right, err := evalExpr(ec, be.Right, isRoot)
 		if err != nil {
 			return nil, err
 		}
@@ -281,9 +285,11 @@ func evalExpr(ec *EvalConfig, e logql.Expr) ([]*timeseries, error) {
 			return nil, fmt.Errorf(`unknown binary op %q`, be.Op)
 		}
 		bfa := &binaryOpFuncArg{
-			be:    be,
-			left:  left,
-			right: right,
+			be:        be,
+			leftExpr:  be.Left,
+			left:      left,
+			rightExpr: be.Right,
+			right:     right,
 		}
 		rv, err := bf(bfa)
 		if err != nil {
@@ -374,7 +380,7 @@ func tryGetArgRollupFuncWithMetricExpr(ae *logql.AggrFuncExpr) (*logql.FuncExpr,
 func evalExprs(ec *EvalConfig, es []logql.Expr) ([][]*timeseries, error) {
 	var rvs [][]*timeseries
 	for _, e := range es {
-		rv, err := evalExpr(ec, e)
+		rv, err := evalExpr(ec, e, false)
 		if err != nil {
 			return nil, err
 		}
@@ -396,7 +402,7 @@ func evalRollupFuncArgs(ec *EvalConfig, fe *logql.FuncExpr) ([]interface{}, *log
 			args[i] = re
 			continue
 		}
-		ts, err := evalExpr(ec, arg)
+		ts, err := evalExpr(ec, arg, false)
 		if err != nil {
 			return nil, nil, fmt.Errorf("cannot evaluate arg #%d for %q: %w", i+1, fe.AppendString(nil), err)
 		}
@@ -519,7 +525,7 @@ func evalRollupFuncWithSubquery(ec *EvalConfig, name string, rf rollupFunc, expr
 	}
 	// unconditionally align start and end args to step for subquery as Prometheus does.
 	ecSQ.Start, ecSQ.End = alignStartEnd(ecSQ.Start, ecSQ.End, ecSQ.Step)
-	tssSQ, err := evalExpr(ecSQ, re.Expr)
+	tssSQ, err := evalExpr(ecSQ, re.Expr, false)
 	if err != nil {
 		return nil, err
 	}
@@ -615,6 +621,60 @@ var (
 	rollupResultCachePartialHits = metrics.NewCounter(`vm_rollup_result_cache_partial_hits_total`)
 	rollupResultCacheMiss        = metrics.NewCounter(`vm_rollup_result_cache_miss_total`)
 )
+
+func evalMetricExpr(ec *EvalConfig, me *logql.MetricExpr) ([]*timeseries, error) {
+	if me.IsEmpty() {
+		return evalNumber(ec, nan), nil
+	}
+
+	// Fetch the remaining part of the result.
+	tfs := toTagFilters(me.LabelFilters)
+	minTimestamp := ec.Start - maxSilenceInterval - ec.Step
+
+	sq := &storage.SearchQuery{
+		AccountID:    ec.AuthToken.AccountID,
+		ProjectID:    ec.AuthToken.ProjectID,
+		MinTimestamp: minTimestamp,
+		MaxTimestamp: ec.End,
+		TagFilterss:  [][]storage.TagFilter{tfs},
+	}
+	rss, isPartial, err := netstorage.ProcessSearchQuery(ec.AuthToken, sq, 2, ec.Deadline)
+	if err != nil {
+		return nil, err
+	}
+	if isPartial && ec.DenyPartialResponse {
+		rss.Cancel()
+		return nil, fmt.Errorf("cannot return full response, since some of vmstorage nodes are unavailable")
+	}
+	rssLen := rss.Len()
+	if rssLen == 0 {
+		rss.Cancel()
+		return nil, nil
+	}
+
+	// Evaluate rollup
+	var tss []*timeseries
+	var tssLock sync.Mutex
+	err = rss.RunParallel(func(rs *netstorage.Result, workerID uint) error {
+		var ts timeseries
+
+		ts.MetricName.CopyFrom(&rs.MetricName)
+		ts.Values = rs.Values
+		ts.Datas = rs.Datas
+		ts.Timestamps = rs.Timestamps
+		ts.denyReuse = true
+
+		tssLock.Lock()
+		tss = append(tss, &ts)
+		tssLock.Unlock()
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return tss, nil
+}
 
 func evalRollupFuncWithMetricExpr(ec *EvalConfig, name string, rf rollupFunc,
 	expr logql.Expr, me *logql.MetricExpr, iafc *incrementalAggrFuncContext, windowStr string) ([]*timeseries, error) {

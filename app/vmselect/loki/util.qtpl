@@ -20,6 +20,10 @@
 	[{%f= float64(timestamp)/1e3 %},"{%f= value %}"]
 {% endfunc %}
 
+{% func metricDataRow(timestamp int64, data []byte) %}
+	[{%f= float64(timestamp)/1e3 %},"{%z= data %}"]
+{% endfunc %}
+
 {% func valuesWithTimestamps(values []float64, timestamps []int64) %}
 	{% if len(values) == 0 %}
 		[]

@@ -30,4 +30,29 @@ See https://prometheus.io/docs/prometheus/latest/querying/api/#range-queries
 }
 {% endfunc %}
 
+{% func QueryRangeDatasResponse(rs []netstorage.Result) %}
+{
+	"status":"success",
+	"data":{
+		"resultType":"streams",
+		"result":[
+			{% if len(rs) > 0 %}
+				{%= datasQueryRangeLine(&rs[0]) %}
+				{% code rs = rs[1:] %}
+				{% for i := range rs %}
+					,{%= datasQueryRangeLine(&rs[i]) %}
+				{% endfor %}
+			{% endif %}
+		]
+	}
+}
+{% endfunc %}
+
+{% func datasQueryRangeLine(r *netstorage.Result) %}
+{
+	"metric": {%= metricNameObject(&r.MetricName) %},
+	"values": {%= datasWithTimestamps(r.Datas, r.Timestamps) %}
+}
+{% endfunc %}
+
 {% endstripspace %}

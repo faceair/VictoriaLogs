@@ -17,17 +17,24 @@ var binaryOps = map[string]bool{
 	"^": true,
 
 	// cmp ops
-	"==": true,
-	"!=": true,
-	">":  true,
-	"<":  true,
-	">=": true,
-	"<=": true,
+	"==":  true,
+	">":   true,
+	"<":   true,
+	">=":  true,
+	"<=":  true,
+	"neq": true, // modify for compatible loki `!=` operator
 
 	// logical set ops
 	"and":    true,
 	"or":     true,
 	"unless": true,
+
+	// extended for loki Logql
+	// https://grafana.com/docs/loki/latest/logql/#filter-expression
+	"|=": true,
+	"!=": true,
+	"|~": true,
+	"!~": true,
 
 	// New ops for MetricsQL
 	"if":      true,
