@@ -87,7 +87,7 @@ type EvalConfig struct {
 	Start     int64
 	End       int64
 	Step      int64
-	Limit     int
+	Limit     int64
 	Forward   bool
 
 	// QuotedRemoteAddr contains quoted remote address.
@@ -625,12 +625,15 @@ var (
 	rollupResultCacheMiss        = metrics.NewCounter(`vm_rollup_result_cache_miss_total`)
 )
 
+var (
+	errReachedLimit = fmt.Errorf("reached limit")
+)
+
 func evalMetricExpr(ec *EvalConfig, me *logql.MetricExpr) ([]*timeseries, error) {
 	if me.IsEmpty() {
 		return evalNumber(ec, nan), nil
 	}
 
-	// Fetch the remaining part of the result.
 	tfs := toTagFilters(me.LabelFilters)
 
 	sq := &storage.SearchQuery{
@@ -659,7 +662,6 @@ func evalMetricExpr(ec *EvalConfig, me *logql.MetricExpr) ([]*timeseries, error)
 	var tss []*timeseries
 	var tssLock sync.RWMutex
 
-	errReachedLimit := fmt.Errorf("reached limit")
 	err = rss.RunParallel(func(rs *netstorage.Result, workerID uint) error {
 		tssLock.Lock()
 

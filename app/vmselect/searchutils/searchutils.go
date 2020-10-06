@@ -163,13 +163,13 @@ func GetBool(r *http.Request, argKey string) bool {
 	}
 }
 
-// GetInt returns int value from the given argKey query arg.
-func GetInt(r *http.Request, argKey string, defaultValue int) (int, error) {
+// GetInt64 returns int value from the given argKey query arg.
+func GetInt64(r *http.Request, argKey string, defaultValue int64) (int64, error) {
 	argValue := r.FormValue(argKey)
 	if len(argValue) == 0 {
 		return defaultValue, nil
 	}
-	return strconv.Atoi(argValue)
+	return strconv.ParseInt(argValue, 10, 64)
 }
 
 // GetString returns string value from the given argKey query arg.

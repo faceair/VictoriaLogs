@@ -5,17 +5,17 @@
 {% stripspace %}
 QueryRangeResponse generates response for /api/v1/query_range.
 See https://prometheus.io/docs/prometheus/latest/querying/api/#range-queries
-{% func QueryRangeResponse(rs []netstorage.Result) %}
+{% func VectorQueryRangeResponse(rs []netstorage.Result) %}
 {
 	"status":"success",
 	"data":{
 		"resultType":"matrix",
 		"result":[
 			{% if len(rs) > 0 %}
-				{%= queryRangeLine(&rs[0]) %}
+				{%= vectorQueryRangeLine(&rs[0]) %}
 				{% code rs = rs[1:] %}
 				{% for i := range rs %}
-					,{%= queryRangeLine(&rs[i]) %}
+					,{%= vectorQueryRangeLine(&rs[i]) %}
 				{% endfor %}
 			{% endif %}
 		]
@@ -23,24 +23,24 @@ See https://prometheus.io/docs/prometheus/latest/querying/api/#range-queries
 }
 {% endfunc %}
 
-{% func queryRangeLine(r *netstorage.Result) %}
+{% func vectorQueryRangeLine(r *netstorage.Result) %}
 {
 	"metric": {%= metricNameObject(&r.MetricName) %},
 	"values": {%= valuesWithTimestamps(r.Values, r.Timestamps) %}
 }
 {% endfunc %}
 
-{% func QueryRangeDatasResponse(rs []netstorage.Result) %}
+{% func StreamsQueryRangeResponse(rs []netstorage.Result) %}
 {
 	"status":"success",
 	"data":{
 		"resultType":"streams",
 		"result":[
 			{% if len(rs) > 0 %}
-				{%= datasQueryRangeLine(&rs[0]) %}
+				{%= streamsQueryRangeLine(&rs[0]) %}
 				{% code rs = rs[1:] %}
 				{% for i := range rs %}
-					,{%= datasQueryRangeLine(&rs[i]) %}
+					,{%= streamsQueryRangeLine(&rs[i]) %}
 				{% endfor %}
 			{% endif %}
 		]
@@ -48,7 +48,7 @@ See https://prometheus.io/docs/prometheus/latest/querying/api/#range-queries
 }
 {% endfunc %}
 
-{% func datasQueryRangeLine(r *netstorage.Result) %}
+{% func streamsQueryRangeLine(r *netstorage.Result) %}
 {
 	"metric": {%= metricNameObject(&r.MetricName) %},
 	"values": {%= datasWithTimestamps(r.Datas, r.Timestamps) %}

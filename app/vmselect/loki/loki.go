@@ -908,7 +908,7 @@ func QueryHandler(startTime time.Time, at *auth.Token, w http.ResponseWriter, r 
 	if step <= 0 {
 		step = defaultStep
 	}
-	limit, err := searchutils.GetInt(r, "limit", defaultLimit)
+	limit, err := searchutils.GetInt64(r, "limit", defaultLimit)
 	if err != nil {
 		return err
 	}
@@ -1003,9 +1003,9 @@ func QueryHandler(startTime time.Time, at *auth.Token, w http.ResponseWriter, r 
 
 	switch e.(type) {
 	case *logql.BinaryOpExpr, *logql.MetricExpr:
-		WriteQueryDatasResponse(bw, result)
+		WriteStreamsQueryResponse(bw, result)
 	default:
-		WriteQueryResponse(bw, result)
+		WriteVectorQueryResponse(bw, result)
 	}
 
 	if err := bw.Flush(); err != nil {
@@ -1055,7 +1055,7 @@ func QueryRangeHandler(startTime time.Time, at *auth.Token, w http.ResponseWrite
 	if err != nil {
 		return err
 	}
-	limit, err := searchutils.GetInt(r, "limit", defaultLimit)
+	limit, err := searchutils.GetInt64(r, "limit", defaultLimit)
 	if err != nil {
 		return err
 	}
@@ -1068,8 +1068,7 @@ func QueryRangeHandler(startTime time.Time, at *auth.Token, w http.ResponseWrite
 	return nil
 }
 
-func queryRangeHandler(startTime time.Time, at *auth.Token, w http.ResponseWriter, query string, start, end, step int64,
-	limit int, forward bool, r *http.Request, ct int64) error {
+func queryRangeHandler(startTime time.Time, at *auth.Token, w http.ResponseWriter, query string, start, end, step, limit int64, forward bool, r *http.Request, ct int64) error {
 	deadline := searchutils.GetDeadlineForQuery(r, startTime)
 	mayCache := !searchutils.GetBool(r, "nocache")
 	lookbackDelta, err := getMaxLookback(r)
@@ -1120,7 +1119,7 @@ func queryRangeHandler(startTime time.Time, at *auth.Token, w http.ResponseWrite
 		// See https://github.com/VictoriaMetrics/VictoriaMetrics/issues/153
 		result = removeEmptyValuesAndTimeseries(result)
 
-		WriteQueryRangeDatasResponse(bw, result)
+		WriteStreamsQueryRangeResponse(bw, result)
 	default:
 		queryOffset := getLatencyOffsetMilliseconds()
 		if ct-queryOffset < end {
@@ -1131,7 +1130,7 @@ func queryRangeHandler(startTime time.Time, at *auth.Token, w http.ResponseWrite
 		// See https://github.com/VictoriaMetrics/VictoriaMetrics/issues/153
 		result = removeEmptyValuesAndTimeseries(result)
 
-		WriteQueryRangeResponse(bw, result)
+		WriteVectorQueryRangeResponse(bw, result)
 	}
 
 	if err := bw.Flush(); err != nil {
