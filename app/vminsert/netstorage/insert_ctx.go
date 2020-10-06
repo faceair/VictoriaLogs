@@ -6,20 +6,18 @@ import (
 
 	"github.com/VictoriaMetrics/VictoriaMetrics/app/vminsert/relabel"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/auth"
-	"github.com/VictoriaMetrics/VictoriaMetrics/lib/bytesutil"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/encoding"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/httpserver"
-	"github.com/VictoriaMetrics/VictoriaMetrics/lib/prompb"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/storage"
-	xxhash "github.com/cespare/xxhash/v2"
-	jump "github.com/lithammer/go-jump-consistent-hash"
+	"github.com/cespare/xxhash/v2"
+	"github.com/lithammer/go-jump-consistent-hash"
 )
 
 // InsertCtx is a generic context for inserting data.
 //
 // InsertCtx.Reset must be called before the first usage.
 type InsertCtx struct {
-	Labels        []prompb.Label
+	Labels        []storage.Label
 	MetricNameBuf []byte
 
 	bufRowss  []bufRows
@@ -74,36 +72,18 @@ func (ctx *InsertCtx) Reset() {
 // AddLabelBytes adds (name, value) label to ctx.Labels.
 //
 // name and value must exist until ctx.Labels is used.
-func (ctx *InsertCtx) AddLabelBytes(name, value []byte) {
+func (ctx *InsertCtx) AddLabel(name, value []byte) {
 	if len(value) == 0 {
 		// Skip labels without values, since they have no sense.
 		// See https://github.com/VictoriaMetrics/VictoriaMetrics/issues/600
 		// Do not skip labels with empty name, since they are equal to __name__.
 		return
 	}
-	ctx.Labels = append(ctx.Labels, prompb.Label{
+	ctx.Labels = append(ctx.Labels, storage.Label{
 		// Do not copy name and value contents for performance reasons.
 		// This reduces GC overhead on the number of objects and allocations.
 		Name:  name,
 		Value: value,
-	})
-}
-
-// AddLabel adds (name, value) label to ctx.Labels.
-//
-// name and value must exist until ctx.Labels is used.
-func (ctx *InsertCtx) AddLabel(name, value string) {
-	if len(value) == 0 {
-		// Skip labels without values, since they have no sense.
-		// See https://github.com/VictoriaMetrics/VictoriaMetrics/issues/600
-		// Do not skip labels with empty name, since they are equal to __name__.
-		return
-	}
-	ctx.Labels = append(ctx.Labels, prompb.Label{
-		// Do not copy name and value contents for performance reasons.
-		// This reduces GC overhead on the number of objects and allocations.
-		Name:  bytesutil.ToUnsafeBytes(name),
-		Value: bytesutil.ToUnsafeBytes(value),
 	})
 }
 
@@ -113,7 +93,7 @@ func (ctx *InsertCtx) ApplyRelabeling() {
 }
 
 // WriteDataPoint writes (timestamp, value) data point with the given at and labels to ctx buffer.
-func (ctx *InsertCtx) WriteDataPoint(at *auth.Token, labels []prompb.Label, timestamp int64, value []byte) error {
+func (ctx *InsertCtx) WriteDataPoint(at *auth.Token, labels []storage.Label, timestamp int64, value []byte) error {
 	ctx.MetricNameBuf = storage.MarshalMetricNameRaw(ctx.MetricNameBuf[:0], at.AccountID, at.ProjectID, labels)
 	storageNodeIdx := ctx.GetStorageNodeIdx(at, labels)
 	return ctx.WriteDataPointExt(at, storageNodeIdx, ctx.MetricNameBuf, timestamp, value)
@@ -155,7 +135,7 @@ func (ctx *InsertCtx) FlushBufs() error {
 // GetStorageNodeIdx returns storage node index for the given at and labels.
 //
 // The returned index must be passed to WriteDataPoint.
-func (ctx *InsertCtx) GetStorageNodeIdx(at *auth.Token, labels []prompb.Label) int {
+func (ctx *InsertCtx) GetStorageNodeIdx(at *auth.Token, labels []storage.Label) int {
 	if len(storageNodes) == 1 {
 		// Fast path - only a single storage node.
 		return 0

@@ -11,7 +11,6 @@ import (
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/bytesutil"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/encoding"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/logger"
-	"github.com/VictoriaMetrics/VictoriaMetrics/lib/prompb"
 )
 
 const (
@@ -479,10 +478,16 @@ func SetMaxLabelsPerTimeseries(maxLabels int) {
 	maxLabelsPerTimeseries = maxLabels
 }
 
+// Label is a timeseries label
+type Label struct {
+	Name  []byte
+	Value []byte
+}
+
 // MarshalMetricNameRaw marshals labels to dst and returns the result.
 //
 // The result must be unmarshaled with MetricName.unmarshalRaw
-func MarshalMetricNameRaw(dst []byte, accountID, projectID uint32, labels []prompb.Label) []byte {
+func MarshalMetricNameRaw(dst []byte, accountID, projectID uint32, labels []Label) []byte {
 	// Calculate the required space for dst.
 	dstLen := len(dst)
 	dstSize := dstLen + 8
@@ -543,7 +548,7 @@ var (
 )
 
 // MarshalMetricLabelRaw marshals label to dst.
-func MarshalMetricLabelRaw(dst []byte, label *prompb.Label) []byte {
+func MarshalMetricLabelRaw(dst []byte, label *Label) []byte {
 	dst = marshalBytesFast(dst, label.Name)
 	dst = marshalBytesFast(dst, label.Value)
 	return dst
@@ -719,7 +724,7 @@ func copyTags(dst, src []Tag) []Tag {
 
 var commonTagKeys = func() map[string][]byte {
 	lcm := map[string][]byte{
-		// job-like tags must go first in MetricName.Tags.
+		// job-like tags must go first in MetricName.Labels.
 		// This should improve data locality.
 		// They start with \x00\x00.
 		// Do not change values!
@@ -740,7 +745,7 @@ var commonTagKeys = func() map[string][]byte {
 		"SensorType":  []byte("\x00\x00\x38"),
 		"db":          []byte("\x00\x00\x40"),
 
-		// instance-like tags must go second in MetricName.Tags.
+		// instance-like tags must go second in MetricName.Labels.
 		// This should improve data locality.
 		// They start with \x00\x01.
 		// Do not change values!

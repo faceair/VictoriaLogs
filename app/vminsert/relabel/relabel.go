@@ -8,9 +8,9 @@ import (
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/bytesutil"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/logger"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/procutil"
-	"github.com/VictoriaMetrics/VictoriaMetrics/lib/prompb"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/prompbmarshal"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/promrelabel"
+	"github.com/VictoriaMetrics/VictoriaMetrics/lib/storage"
 	"github.com/VictoriaMetrics/metrics"
 )
 
@@ -81,7 +81,7 @@ func (ctx *Ctx) Reset() {
 // ApplyRelabeling applies relabeling to the given labels and returns the result.
 //
 // The returned labels are valid until the next call to ApplyRelabeling.
-func (ctx *Ctx) ApplyRelabeling(labels []prompb.Label) []prompb.Label {
+func (ctx *Ctx) ApplyRelabeling(labels []storage.Label) []storage.Label {
 	prcs := prcsGlobal.Load().(*[]promrelabel.ParsedRelabelConfig)
 	if len(*prcs) == 0 {
 		// There are no relabeling rules.
@@ -116,7 +116,7 @@ func (ctx *Ctx) ApplyRelabeling(labels []prompb.Label) []prompb.Label {
 			name = nil
 		}
 		value := bytesutil.ToUnsafeBytes(label.Value)
-		dst = append(dst, prompb.Label{
+		dst = append(dst, storage.Label{
 			Name:  name,
 			Value: value,
 		})
