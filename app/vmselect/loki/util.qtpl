@@ -21,7 +21,7 @@
 {% endfunc %}
 
 {% func metricDataRow(timestamp int64, data []byte) %}
-	[{%f= float64(timestamp)/1e3 %},"{%z= data %}"]
+	["{%dl= timestamp*1e6 %}","{%z= data %}"]
 {% endfunc %}
 
 {% func valuesWithTimestamps(values []float64, timestamps []int64) %}
@@ -56,7 +56,7 @@
 	{% endif %}
 [
 	{% code /* inline metricRow call here for the sake of performance optimization */ %}
-	[{%f= float64(timestamps[0])/1e3 %},"{%z= values[0] %}"]
+	["{%dl= timestamps[0]*1e6 %}","{%z= values[0] %}"]
 	{% code
 		timestamps = timestamps[1:]
 		values = values[1:]
@@ -68,7 +68,7 @@
 		%}
 		{% for i, v := range values %}
 			{% code /* inline metricRow call here for the sake of performance optimization */ %}
-			,[{%f= float64(timestamps[i])/1e3 %},"{%z= v %}"]
+			,["{%dl= timestamps[i]*1e6 %}","{%z= v %}"]
 		{% endfor %}
 	{% endif %}
 ]

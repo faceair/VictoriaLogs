@@ -134,11 +134,11 @@ func metricRow(timestamp int64, value float64) string {
 //line app/vmselect/loki/util.qtpl:23
 func streammetricDataRow(qw422016 *qt422016.Writer, timestamp int64, data []byte) {
 //line app/vmselect/loki/util.qtpl:23
-	qw422016.N().S(`[`)
+	qw422016.N().S(`["`)
 //line app/vmselect/loki/util.qtpl:24
-	qw422016.N().F(float64(timestamp) / 1e3)
+	qw422016.N().DL(timestamp * 1e6)
 //line app/vmselect/loki/util.qtpl:24
-	qw422016.N().S(`,"`)
+	qw422016.N().S(`","`)
 //line app/vmselect/loki/util.qtpl:24
 	qw422016.N().Z(data)
 //line app/vmselect/loki/util.qtpl:24
@@ -273,11 +273,11 @@ func streamdatasWithTimestamps(qw422016 *qt422016.Writer, values [][]byte, times
 	/* inline metricRow call here for the sake of performance optimization */
 
 //line app/vmselect/loki/util.qtpl:58
-	qw422016.N().S(`[`)
+	qw422016.N().S(`["`)
 //line app/vmselect/loki/util.qtpl:59
-	qw422016.N().F(float64(timestamps[0]) / 1e3)
+	qw422016.N().DL(timestamps[0] * 1e6)
 //line app/vmselect/loki/util.qtpl:59
-	qw422016.N().S(`,"`)
+	qw422016.N().S(`","`)
 //line app/vmselect/loki/util.qtpl:59
 	qw422016.N().Z(values[0])
 //line app/vmselect/loki/util.qtpl:59
@@ -298,11 +298,11 @@ func streamdatasWithTimestamps(qw422016 *qt422016.Writer, values [][]byte, times
 			/* inline metricRow call here for the sake of performance optimization */
 
 //line app/vmselect/loki/util.qtpl:70
-			qw422016.N().S(`,[`)
+			qw422016.N().S(`,["`)
 //line app/vmselect/loki/util.qtpl:71
-			qw422016.N().F(float64(timestamps[i]) / 1e3)
+			qw422016.N().DL(timestamps[i] * 1e6)
 //line app/vmselect/loki/util.qtpl:71
-			qw422016.N().S(`,"`)
+			qw422016.N().S(`","`)
 //line app/vmselect/loki/util.qtpl:71
 			qw422016.N().Z(v)
 //line app/vmselect/loki/util.qtpl:71

@@ -368,14 +368,16 @@ func binaryOpUnless(bfa *binaryOpFuncArg) ([]*timeseries, error) {
 }
 
 func binaryOpContains(bfa *binaryOpFuncArg) ([]*timeseries, error) {
+	var rvs []*timeseries
+
 	se, ok := bfa.rightExpr.(*logql.StringExpr)
 	if !ok {
-		return binaryOpNeqFunc(bfa)
+		return rvs, nil
 	}
+
 	mLeft, _ := createTimeseriesMapByTagSet(bfa.be, bfa.left, bfa.right)
 	keyword := []byte(se.S)
 
-	var rvs []*timeseries
 	for _, tssLeft := range mLeft {
 		for _, tsLeft := range tssLeft {
 			valuesLeft := tsLeft.Values
@@ -395,18 +397,20 @@ func binaryOpContains(bfa *binaryOpFuncArg) ([]*timeseries, error) {
 	return rvs, nil
 }
 
-// modify for compatible loki `!=` operator
 var binaryOpNeqFunc = newBinaryOpCmpFunc(binaryop.Neq)
 
 func binaryOpNotContains(bfa *binaryOpFuncArg) ([]*timeseries, error) {
+	var rvs []*timeseries
+
 	se, ok := bfa.rightExpr.(*logql.StringExpr)
 	if !ok {
+		// backward compatible `!=` operator
 		return binaryOpNeqFunc(bfa)
 	}
+
 	mLeft, _ := createTimeseriesMapByTagSet(bfa.be, bfa.left, bfa.right)
 	keyword := []byte(se.S)
 
-	var rvs []*timeseries
 	for _, tssLeft := range mLeft {
 		for _, tsLeft := range tssLeft {
 			valuesLeft := tsLeft.Values
@@ -427,17 +431,19 @@ func binaryOpNotContains(bfa *binaryOpFuncArg) ([]*timeseries, error) {
 }
 
 func binaryOpMatch(bfa *binaryOpFuncArg) ([]*timeseries, error) {
+	var rvs []*timeseries
+
 	se, ok := bfa.rightExpr.(*logql.StringExpr)
 	if !ok {
-		return binaryOpNeqFunc(bfa)
+		return rvs, nil
 	}
+
 	mLeft, _ := createTimeseriesMapByTagSet(bfa.be, bfa.left, bfa.right)
 	re, err := logql.CompileRegexp(se.S)
 	if err != nil {
 		return nil, err
 	}
 
-	var rvs []*timeseries
 	for _, tssLeft := range mLeft {
 		for _, tsLeft := range tssLeft {
 			valuesLeft := tsLeft.Values
@@ -458,17 +464,19 @@ func binaryOpMatch(bfa *binaryOpFuncArg) ([]*timeseries, error) {
 }
 
 func binaryOpNotMatch(bfa *binaryOpFuncArg) ([]*timeseries, error) {
+	var rvs []*timeseries
+
 	se, ok := bfa.rightExpr.(*logql.StringExpr)
 	if !ok {
-		return binaryOpNeqFunc(bfa)
+		return rvs, nil
 	}
+
 	mLeft, _ := createTimeseriesMapByTagSet(bfa.be, bfa.left, bfa.right)
 	re, err := logql.CompileRegexp(se.S)
 	if err != nil {
 		return nil, err
 	}
 
-	var rvs []*timeseries
 	for _, tssLeft := range mLeft {
 		for _, tsLeft := range tssLeft {
 			valuesLeft := tsLeft.Values
