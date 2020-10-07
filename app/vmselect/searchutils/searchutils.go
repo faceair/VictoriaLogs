@@ -65,6 +65,9 @@ func GetTime(r *http.Request, argKey string, defaultMs int64) (int64, error) {
 		}
 		secs = float64(t.UnixNano()) / 1e9
 	}
+	for secs > math.MaxInt32 {
+		secs = secs / 1e3
+	}
 	msecs := int64(secs * 1e3)
 	if msecs < minTimeMsecs {
 		msecs = 0

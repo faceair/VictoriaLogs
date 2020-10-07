@@ -108,7 +108,7 @@ func StreamStreamsQueryResponse(qw422016 *qt422016.Writer, rs []netstorage.Resul
 //line app/vmselect/loki/query_response.qtpl:39
 	if len(rs) > 0 {
 //line app/vmselect/loki/query_response.qtpl:39
-		qw422016.N().S(`{"metric":`)
+		qw422016.N().S(`{"stream":`)
 //line app/vmselect/loki/query_response.qtpl:41
 		streammetricNameObject(qw422016, &rs[0].MetricName)
 //line app/vmselect/loki/query_response.qtpl:41
@@ -130,7 +130,7 @@ func StreamStreamsQueryResponse(qw422016 *qt422016.Writer, rs []netstorage.Resul
 			r := &rs[i]
 
 //line app/vmselect/loki/query_response.qtpl:46
-			qw422016.N().S(`,{"metric":`)
+			qw422016.N().S(`,{"stream":`)
 //line app/vmselect/loki/query_response.qtpl:48
 			streammetricNameObject(qw422016, &r.MetricName)
 //line app/vmselect/loki/query_response.qtpl:48

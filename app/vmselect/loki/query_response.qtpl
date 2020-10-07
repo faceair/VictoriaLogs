@@ -38,14 +38,14 @@ See https://prometheus.io/docs/prometheus/latest/querying/api/#instant-queries
 		"result":[
 			{% if len(rs) > 0 %}
 				{
-					"metric": {%= metricNameObject(&rs[0].MetricName) %},
+					"stream": {%= metricNameObject(&rs[0].MetricName) %},
 					"value": ["{%dl= rs[0].Timestamps[0]*1e6 %}","{%z= rs[0].Datas[0] %}"]
 				}
 				{% code rs = rs[1:] %}
 				{% for i := range rs %}
 					{% code r := &rs[i] %}
 					,{
-						"metric": {%= metricNameObject(&r.MetricName) %},
+						"stream": {%= metricNameObject(&r.MetricName) %},
 						"value": ["{%dl= r.Timestamps[0]*1e6 %}","{%z= r.Datas[0] %}"]
 					}
 				{% endfor %}

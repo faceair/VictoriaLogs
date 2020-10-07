@@ -172,7 +172,7 @@ func StreamsQueryRangeResponse(rs []netstorage.Result) string {
 //line app/vmselect/loki/query_range_response.qtpl:51
 func streamstreamsQueryRangeLine(qw422016 *qt422016.Writer, r *netstorage.Result) {
 //line app/vmselect/loki/query_range_response.qtpl:51
-	qw422016.N().S(`{"metric":`)
+	qw422016.N().S(`{"stream":`)
 //line app/vmselect/loki/query_range_response.qtpl:53
 	streammetricNameObject(qw422016, &r.MetricName)
 //line app/vmselect/loki/query_range_response.qtpl:53
