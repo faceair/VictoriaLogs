@@ -140,22 +140,39 @@ func (r *Row) unmarshal(s []byte, labelsPool []storage.Label, noEscapes bool) ([
 	if len(s) == 0 {
 		return labelsPool, fmt.Errorf("value cannot be empty")
 	}
+
+	if len(s) == 0 || s[0] != '"' {
+		return labelsPool, fmt.Errorf("expecting quoted value; got %q", s)
+	}
+	value := s[1:]
+	if noEscapes {
+		// Fast path - the line has no escape chars
+		n = bytes.IndexByte(value, '"')
+		if n < 0 {
+			return labelsPool, fmt.Errorf("missing closing quote for value %q", s)
+		}
+		s = value[n+1:]
+		value = value[:n]
+	} else {
+		// Slow path - the line contains escape chars
+		n = findClosingQuote(value)
+		if n < 0 {
+			return labelsPool, fmt.Errorf("missing closing quote for value %q", s)
+		}
+		var err error
+		value, err = unescapeValue(s[:n+1])
+		if err != nil {
+			return labelsPool, fmt.Errorf("cannot unescape value %q: %w", s[:n+1], err)
+		}
+		s = s[n+1:]
+	}
+	r.Value = value
+
+	// There is timestamp.
 	n = nextWhitespace(s)
 	if n < 0 {
-		// There is no timestamp.
-		v, err := unescapeValue(s)
-		if err != nil {
-			return nil, fmt.Errorf("unexpected value %q", s)
-		}
-		r.Value = v
 		return labelsPool, nil
 	}
-	// There is timestamp.
-	v, err := unescapeValue(s[:n])
-	if err != nil {
-		return nil, fmt.Errorf("unexpected value %q", s)
-	}
-	r.Value = v
 	s = skipLeadingWhitespace(s[n+1:])
 	ts, err := fastfloat.ParseInt64(bytesutil.ToUnsafeString(s))
 	if err != nil {
