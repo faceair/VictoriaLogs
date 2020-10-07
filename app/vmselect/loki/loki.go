@@ -1037,7 +1037,7 @@ func parsePositiveDuration(s string, step int64) (int64, error) {
 }
 
 // Default limit used if not set.
-const defaultLimit = 100
+const defaultLimit = 1000
 
 // QueryRangeHandler processes /api/v1/query_range request.
 //
@@ -1090,12 +1090,6 @@ func TailHandler(startTime time.Time, at *auth.Token, w http.ResponseWriter, r *
 		return err
 	}
 
-	delayFor, err := searchutils.GetInt64(r, "delay_for", 0)
-	if err != nil {
-		return err
-	}
-	time.Sleep(time.Second * time.Duration(delayFor))
-
 	conn, err := websocket.TryUpgrade(w, r)
 	if err != nil {
 		return err
@@ -1105,8 +1099,8 @@ func TailHandler(startTime time.Time, at *auth.Token, w http.ResponseWriter, r *
 	defer ticker.Stop()
 
 	var lastTs, end int64
-
 	filter := make(map[uint64]int64)
+
 	for ; true; <-ticker.C {
 		startTime = time.Now()
 		end = startTime.UnixNano() / 1e6
@@ -1120,11 +1114,15 @@ func TailHandler(startTime time.Time, at *auth.Token, w http.ResponseWriter, r *
 				start = lastTs
 			}
 			filter[rs.MetricNameHash] = lastTs
+			limit -= int64(len(rs.Timestamps))
 		}
 		for hashKey, lastTs := range filter {
 			if end-lastTs > defaultStep {
 				delete(filter, hashKey)
 			}
+		}
+		if limit <= 0 {
+			break
 		}
 	}
 	return nil
