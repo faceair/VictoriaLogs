@@ -238,7 +238,7 @@ func selectHandler(startTime time.Time, w http.ResponseWriter, r *http.Request, 
 			return true
 		}
 		return true
-	case "loki/api/v1/label":
+	case "loki/api/v1/label", "loki/api/v1/labels":
 		labelsRequests.Inc()
 		httpserver.EnableCORS(w, r)
 		if err := loki.LabelsHandler(startTime, at, w, r); err != nil {
@@ -247,7 +247,7 @@ func selectHandler(startTime time.Time, w http.ResponseWriter, r *http.Request, 
 			return true
 		}
 		return true
-	case "loki/api/v1/label/count":
+	case "loki/api/v1/labels/count":
 		labelsCountRequests.Inc()
 		httpserver.EnableCORS(w, r)
 		if err := loki.LabelsCountHandler(startTime, at, w, r); err != nil {
