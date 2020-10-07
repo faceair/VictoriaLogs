@@ -106,7 +106,7 @@ func StreamExportJSONLine(qw422016 *qt422016.Writer, xb *exportBlock) {
 		values := xb.datas
 
 //line app/vmselect/loki/export.qtpl:27
-		qw422016.N().Z(values[0])
+		qw422016.N().QZ(values[0])
 //line app/vmselect/loki/export.qtpl:28
 		values = values[1:]
 
@@ -115,7 +115,7 @@ func StreamExportJSONLine(qw422016 *qt422016.Writer, xb *exportBlock) {
 //line app/vmselect/loki/export.qtpl:29
 			qw422016.N().S(`,`)
 //line app/vmselect/loki/export.qtpl:30
-			qw422016.N().Z(v)
+			qw422016.N().QZ(v)
 //line app/vmselect/loki/export.qtpl:31
 		}
 //line app/vmselect/loki/export.qtpl:32

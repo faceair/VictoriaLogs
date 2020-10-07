@@ -41,6 +41,7 @@ type Result struct {
 	// Marshaled MetricName. Used only for results sorting
 	// in app/vmselect/promql
 	MetricNameMarshaled []byte
+	MetricNameHash      uint64
 }
 
 func (r *Result) reset() {
@@ -49,6 +50,7 @@ func (r *Result) reset() {
 	r.Values = r.Values[:0]
 	r.Datas = r.Datas[:0]
 	r.MetricNameMarshaled = r.MetricNameMarshaled[:0]
+	r.MetricNameHash = 0
 }
 
 // Results holds results returned from ProcessSearchQuery.

@@ -11,7 +11,7 @@ import (
 func TestRemoveEmptyValuesAndTimeseries(t *testing.T) {
 	f := func(tss []netstorage.Result, tssExpected []netstorage.Result) {
 		t.Helper()
-		tss = removeEmptyValuesAndTimeseries(tss)
+		tss = removeFilteredValuesAndTimeseries(tss)
 		if !reflect.DeepEqual(tss, tssExpected) {
 			t.Fatalf("unexpected result; got %v; want %v", tss, tssExpected)
 		}

@@ -13,6 +13,7 @@ import (
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/logger"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/logql"
 	"github.com/VictoriaMetrics/metrics"
+	"github.com/cespare/xxhash/v2"
 )
 
 var logSlowQueryDuration = flag.Duration("search.logSlowQueryDuration", 5*time.Second, "Log queries with execution time exceeding this value. Zero disables slow query logging")
@@ -95,6 +96,7 @@ func timeseriesToResult(tss []*timeseries, maySort bool) ([]netstorage.Result, e
 
 		rs := &result[i]
 		rs.MetricNameMarshaled = append(rs.MetricNameMarshaled[:0], bb.B...)
+		rs.MetricNameHash = xxhash.Sum64(rs.MetricNameMarshaled)
 		rs.MetricName.CopyFrom(&ts.MetricName)
 		rs.Datas = append(rs.Datas[:0], ts.Datas...)
 		rs.Values = append(rs.Values[:0], ts.Values...)

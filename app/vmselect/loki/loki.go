@@ -960,7 +960,7 @@ func QueryHandler(startTime time.Time, at *auth.Token, w http.ResponseWriter, r 
 		start = end - window
 
 		w.Header().Set("Content-Type", "application/json")
-		if _, err := queryRangeHandler(startTime, at, w, childQuery, start, end, step, limit, forward, r, ct); err != nil {
+		if _, err := queryRangeHandler(startTime, at, w, childQuery, start, end, step, limit, forward, r, ct, false, nil); err != nil {
 			return fmt.Errorf("error when executing query=%q on the time range (start=%d, end=%d, step=%d): %w", childQuery, start, end, step, err)
 		}
 
@@ -1068,7 +1068,7 @@ func QueryRangeHandler(startTime time.Time, at *auth.Token, w http.ResponseWrite
 
 	w.Header().Set("Content-Type", "application/json")
 
-	if _, err := queryRangeHandler(startTime, at, w, query, start, end, step, limit, forward, r, ct); err != nil {
+	if _, err := queryRangeHandler(startTime, at, w, query, start, end, step, limit, forward, r, ct, false, nil); err != nil {
 		return fmt.Errorf("error when executing query=%q on the time range (start=%d, end=%d, step=%d): %w", query, start, end, step, err)
 	}
 	queryRangeDuration.UpdateDuration(startTime)
@@ -1104,25 +1104,34 @@ func TailHandler(startTime time.Time, at *auth.Token, w http.ResponseWriter, r *
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
 
-	var last, end int64
+	var lastTs, end int64
+
+	filter := make(map[uint64]int64)
 	for ; true; <-ticker.C {
 		startTime = time.Now()
 		end = startTime.UnixNano() / 1e6
-		result, err := queryRangeHandler(startTime, at, conn, query, start, end, 60, limit, false, r, end)
+		result, err := queryRangeHandler(startTime, at, conn, query, start, end, 60, limit, false, r, end, true, filter)
 		if err != nil {
 			return fmt.Errorf("error when executing query=%q on the time range (start=%d, end=%d, limit=%d): %w", query, start, end, limit, err)
 		}
 		for _, rs := range result {
-			last = rs.Timestamps[len(rs.Timestamps)-1]
-			if last > start {
-				start = last
+			lastTs = rs.Timestamps[len(rs.Timestamps)-1]
+			if lastTs > start {
+				start = lastTs
+			}
+			filter[rs.MetricNameHash] = lastTs
+		}
+		for hashKey, lastTs := range filter {
+			if end-lastTs > defaultStep {
+				delete(filter, hashKey)
 			}
 		}
 	}
 	return nil
 }
 
-func queryRangeHandler(startTime time.Time, at *auth.Token, w io.Writer, query string, start, end, step, limit int64, forward bool, r *http.Request, ct int64) ([]netstorage.Result, error) {
+func queryRangeHandler(startTime time.Time, at *auth.Token, w io.Writer, query string, start, end, step, limit int64,
+	forward bool, r *http.Request, ct int64, tail bool, filter map[uint64]int64) ([]netstorage.Result, error) {
 	deadline := searchutils.GetDeadlineForQuery(r, startTime)
 	mayCache := !searchutils.GetBool(r, "nocache")
 	lookbackDelta, err := getMaxLookback(r)
@@ -1170,12 +1179,14 @@ func queryRangeHandler(startTime time.Time, at *auth.Token, w io.Writer, query s
 	case *logql.BinaryOpExpr, *logql.MetricExpr:
 		// Remove NaN values as Prometheus does.
 		// See https://github.com/VictoriaMetrics/VictoriaMetrics/issues/153
-		result = removeEmptyValuesAndTimeseries(result)
+		result = removeFilteredValuesAndTimeseries(result, filter)
 
-		if _, ok := w.(http.ResponseWriter); ok {
-			WriteStreamsQueryRangeResponse(bw, result)
+		if tail {
+			if len(result) > 0 {
+				WriteTailQueryRangeResponse(bw, result)
+			}
 		} else {
-			WriteTailQueryRangeResponse(bw, result)
+			WriteStreamsQueryRangeResponse(bw, result)
 		}
 	default:
 		queryOffset := getLatencyOffsetMilliseconds()
@@ -1185,7 +1196,7 @@ func queryRangeHandler(startTime time.Time, at *auth.Token, w io.Writer, query s
 
 		// Remove NaN values as Prometheus does.
 		// See https://github.com/VictoriaMetrics/VictoriaMetrics/issues/153
-		result = removeEmptyValuesAndTimeseries(result)
+		result = removeFilteredValuesAndTimeseries(result, filter)
 
 		WriteVectorQueryRangeResponse(bw, result)
 	}
@@ -1196,7 +1207,9 @@ func queryRangeHandler(startTime time.Time, at *auth.Token, w io.Writer, query s
 	return result, nil
 }
 
-func removeEmptyValuesAndTimeseries(tss []netstorage.Result) []netstorage.Result {
+func removeFilteredValuesAndTimeseries(tss []netstorage.Result, filter map[uint64]int64) []netstorage.Result {
+	var lastTs int64
+	var filtered bool
 	dst := tss[:0]
 	for i := range tss {
 		ts := &tss[i]
@@ -1207,7 +1220,10 @@ func removeEmptyValuesAndTimeseries(tss []netstorage.Result) []netstorage.Result
 				break
 			}
 		}
-		if !hasNaNs {
+		if filter != nil {
+			lastTs, filtered = filter[ts.MetricNameHash]
+		}
+		if !hasNaNs && !filtered {
 			// Fast path: nothing to remove.
 			if len(ts.Values) > 0 {
 				dst = append(dst, *ts)
@@ -1222,7 +1238,7 @@ func removeEmptyValuesAndTimeseries(tss []netstorage.Result) []netstorage.Result
 		dstValues := ts.Values[:0]
 		dstTimestamps := ts.Timestamps[:0]
 		for j, v := range ts.Values {
-			if math.IsNaN(v) {
+			if math.IsNaN(v) || srcTimestamps[j] <= lastTs {
 				continue
 			}
 			if srcDatas != nil {

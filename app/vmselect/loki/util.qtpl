@@ -48,7 +48,7 @@
 	{% endif %}
 [
 	{% code /* inline metricRow call here for the sake of performance optimization */ %}
-	["{%dl= timestamps[0]*1e6 %}","{%z= values[0] %}"]
+	["{%dl= timestamps[0]*1e6 %}",{%qz= values[0] %}]
 	{% code
 		timestamps = timestamps[1:]
 		values = values[1:]
@@ -60,7 +60,7 @@
 		%}
 		{% for i, v := range values %}
 			{% code /* inline metricRow call here for the sake of performance optimization */ %}
-			,["{%dl= timestamps[i]*1e6 %}","{%z= v %}"]
+			,["{%dl= timestamps[i]*1e6 %}",{%qz= v %}]
 		{% endfor %}
 	{% endif %}
 ]

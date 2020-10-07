@@ -116,11 +116,11 @@ func StreamStreamsQueryResponse(qw422016 *qt422016.Writer, rs []netstorage.Resul
 //line app/vmselect/loki/query_response.qtpl:42
 		qw422016.N().DL(rs[0].Timestamps[0] * 1e6)
 //line app/vmselect/loki/query_response.qtpl:42
-		qw422016.N().S(`","`)
+		qw422016.N().S(`",`)
 //line app/vmselect/loki/query_response.qtpl:42
-		qw422016.N().Z(rs[0].Datas[0])
+		qw422016.N().QZ(rs[0].Datas[0])
 //line app/vmselect/loki/query_response.qtpl:42
-		qw422016.N().S(`"]}`)
+		qw422016.N().S(`]}`)
 //line app/vmselect/loki/query_response.qtpl:44
 		rs = rs[1:]
 
@@ -138,11 +138,11 @@ func StreamStreamsQueryResponse(qw422016 *qt422016.Writer, rs []netstorage.Resul
 //line app/vmselect/loki/query_response.qtpl:49
 			qw422016.N().DL(r.Timestamps[0] * 1e6)
 //line app/vmselect/loki/query_response.qtpl:49
-			qw422016.N().S(`","`)
+			qw422016.N().S(`",`)
 //line app/vmselect/loki/query_response.qtpl:49
-			qw422016.N().Z(r.Datas[0])
+			qw422016.N().QZ(r.Datas[0])
 //line app/vmselect/loki/query_response.qtpl:49
-			qw422016.N().S(`"]}`)
+			qw422016.N().S(`]}`)
 //line app/vmselect/loki/query_response.qtpl:51
 		}
 //line app/vmselect/loki/query_response.qtpl:52

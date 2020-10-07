@@ -24,10 +24,10 @@
 		"values":[
 			{% if len(xb.datas) > 0 %}
 				{% code values := xb.datas %}
-				{%z= values[0] %}
+				{%qz= values[0] %}
 				{% code values = values[1:] %}
 				{% for _, v := range values %}
-					,{%z= v %}
+					,{%qz= v %}
 				{% endfor %}
 			{% endif %}
 		],

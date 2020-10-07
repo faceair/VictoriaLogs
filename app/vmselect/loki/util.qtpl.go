@@ -195,11 +195,11 @@ func streamdatasWithTimestamps(qw422016 *qt422016.Writer, values [][]byte, times
 //line app/vmselect/loki/util.qtpl:51
 	qw422016.N().DL(timestamps[0] * 1e6)
 //line app/vmselect/loki/util.qtpl:51
-	qw422016.N().S(`","`)
+	qw422016.N().S(`",`)
 //line app/vmselect/loki/util.qtpl:51
-	qw422016.N().Z(values[0])
+	qw422016.N().QZ(values[0])
 //line app/vmselect/loki/util.qtpl:51
-	qw422016.N().S(`"]`)
+	qw422016.N().S(`]`)
 //line app/vmselect/loki/util.qtpl:53
 	timestamps = timestamps[1:]
 	values = values[1:]
@@ -220,11 +220,11 @@ func streamdatasWithTimestamps(qw422016 *qt422016.Writer, values [][]byte, times
 //line app/vmselect/loki/util.qtpl:63
 			qw422016.N().DL(timestamps[i] * 1e6)
 //line app/vmselect/loki/util.qtpl:63
-			qw422016.N().S(`","`)
+			qw422016.N().S(`",`)
 //line app/vmselect/loki/util.qtpl:63
-			qw422016.N().Z(v)
+			qw422016.N().QZ(v)
 //line app/vmselect/loki/util.qtpl:63
-			qw422016.N().S(`"]`)
+			qw422016.N().S(`]`)
 //line app/vmselect/loki/util.qtpl:64
 		}
 //line app/vmselect/loki/util.qtpl:65
