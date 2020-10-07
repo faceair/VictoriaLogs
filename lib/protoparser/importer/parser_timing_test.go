@@ -6,10 +6,10 @@ import (
 )
 
 func BenchmarkRowsUnmarshal(b *testing.B) {
-	s := `cpu_usage{mode="user"} 1.23
-cpu_usage{mode="system"} 23.344
-cpu_usage{mode="iowait"} 3.3443
-cpu_usage{mode="irq"} 0.34432
+	s := `cpu_usage{mode="user"} "1.23"
+cpu_usage{mode="system"} "23.344"
+cpu_usage{mode="iowait"} "3.3443"
+cpu_usage{mode="irq"} "0.34432"
 `
 	b.SetBytes(int64(len(s)))
 	b.ReportAllocs()

@@ -169,20 +169,20 @@ func TestRowsUnmarshalSuccess(t *testing.T) {
 	f("\t  \t\n\r\n#foobar\n  # baz", &Rows{})
 
 	// Single line
-	f("foobar 78.9", &Rows{
+	f("foobar \"78.9\"", &Rows{
 		Rows: []Row{{
 			Metric: []byte("foobar"),
 			Value:  []byte("78.9"),
 		}},
 	})
-	f("foobar 123.456 789\n", &Rows{
+	f("foobar \"123.456\" 789\n", &Rows{
 		Rows: []Row{{
 			Metric:    []byte("foobar"),
 			Value:     []byte("123.456"),
 			Timestamp: 789,
 		}},
 	})
-	f("foobar{} 123.456 789\n", &Rows{
+	f("foobar{} \"123.456\" 789\n", &Rows{
 		Rows: []Row{{
 			Metric:    []byte("foobar"),
 			Value:     []byte("123.456"),
@@ -197,7 +197,7 @@ func TestRowsUnmarshalSuccess(t *testing.T) {
 #                                                               |_|
 #
 # TYPE cassandra_token_ownership_ratio gauge
-cassandra_token_ownership_ratio 78.9`, &Rows{
+cassandra_token_ownership_ratio "78.9"`, &Rows{
 		Rows: []Row{{
 			Metric: []byte("cassandra_token_ownership_ratio"),
 			Value:  []byte("78.9"),
@@ -205,7 +205,7 @@ cassandra_token_ownership_ratio 78.9`, &Rows{
 	})
 
 	// Timestamp bigger than 1<<31
-	f("aaa 1123 429496729600", &Rows{
+	f("aaa \"1123\" 429496729600", &Rows{
 		Rows: []Row{{
 			Metric:    []byte("aaa"),
 			Value:     []byte("1123"),
@@ -214,7 +214,7 @@ cassandra_token_ownership_ratio 78.9`, &Rows{
 	})
 
 	// Labels
-	f(`foo{bar="baz"} 1 2`, &Rows{
+	f(`foo{bar="baz"} "1" 2`, &Rows{
 		Rows: []Row{{
 			Metric: []byte("foo"),
 			Labels: []storage.Label{{
@@ -225,7 +225,7 @@ cassandra_token_ownership_ratio 78.9`, &Rows{
 			Timestamp: 2,
 		}},
 	})
-	f(`foo{bar="b\"a\\z"} -1.2`, &Rows{
+	f(`foo{bar="b\"a\\z"} "-1.2"`, &Rows{
 		Rows: []Row{{
 			Metric: []byte("foo"),
 			Labels: []storage.Label{{
@@ -236,7 +236,7 @@ cassandra_token_ownership_ratio 78.9`, &Rows{
 		}},
 	})
 	// Empty tags
-	f(`foo {bar="baz",aa="",x="y",="z"} 1 2`, &Rows{
+	f(`foo {bar="baz",aa="",x="y",="z"} "1" 2`, &Rows{
 		Rows: []Row{{
 			Metric: []byte("foo"),
 			Labels: []storage.Label{
@@ -260,7 +260,7 @@ cassandra_token_ownership_ratio 78.9`, &Rows{
 
 	// Trailing comma after tag
 	// See https://github.com/VictoriaMetrics/VictoriaMetrics/issues/350
-	f(`foo{bar="baz",} 1 2`, &Rows{
+	f(`foo{bar="baz",} "1" 2`, &Rows{
 		Rows: []Row{{
 			Metric: []byte("foo"),
 			Labels: []storage.Label{
@@ -275,7 +275,7 @@ cassandra_token_ownership_ratio 78.9`, &Rows{
 	})
 
 	// Multi lines
-	f("# foo\n # bar ba zzz\nfoo 0.3 2\naaa 3\nbar.baz 0.34 43\n", &Rows{
+	f("# foo\n # bar ba zzz\nfoo \"0.3\" 2\naaa \"3\"\nbar.baz \"0.34\" 43\n", &Rows{
 		Rows: []Row{
 			{
 				Metric:    []byte("foo"),
@@ -295,7 +295,7 @@ cassandra_token_ownership_ratio 78.9`, &Rows{
 	})
 
 	// Multi lines with invalid line
-	f("\t foo\t {  } 0.3\t 2\naaa\n  bar.baz 0.34 43\n", &Rows{
+	f("\t foo\t {  } \"0.3\"\t 2\naaa\n  bar.baz \"0.34\" 43\n", &Rows{
 		Rows: []Row{
 			{
 				Metric:    []byte("foo"),
@@ -311,7 +311,7 @@ cassandra_token_ownership_ratio 78.9`, &Rows{
 	})
 
 	// Spaces around tags
-	f(`vm_accounting	{   name="vminsertRows", accountID = "1" , projectID=	"1"   } 277779100`, &Rows{
+	f(`vm_accounting	{   name="vminsertRows", accountID = "1" , projectID=	"1"   } "277779100"`, &Rows{
 		Rows: []Row{
 			{
 				Metric: []byte("vm_accounting"),

@@ -143,12 +143,19 @@ func (r *Row) unmarshal(s []byte, labelsPool []storage.Label, noEscapes bool) ([
 	n = nextWhitespace(s)
 	if n < 0 {
 		// There is no timestamp.
-		r.Value = s
+		v, err := unescapeValue(s)
+		if err != nil {
+			return nil, fmt.Errorf("unexpected value %q", s)
+		}
+		r.Value = v
 		return labelsPool, nil
 	}
 	// There is timestamp.
-	r.Value = s[:n]
-
+	v, err := unescapeValue(s[:n])
+	if err != nil {
+		return nil, fmt.Errorf("unexpected value %q", s)
+	}
+	r.Value = v
 	s = skipLeadingWhitespace(s[n+1:])
 	ts, err := fastfloat.ParseInt64(bytesutil.ToUnsafeString(s))
 	if err != nil {
@@ -290,7 +297,7 @@ func findClosingQuote(s []byte) int {
 
 func unescapeValue(s []byte) ([]byte, error) {
 	if len(s) < 2 || s[0] != '"' || s[len(s)-1] != '"' {
-		return nil, fmt.Errorf("unexpected tag value: %q", s)
+		return nil, fmt.Errorf("unexpected label value: %q", s)
 	}
 	n := bytes.IndexByte(s, '\\')
 	if n < 0 {
