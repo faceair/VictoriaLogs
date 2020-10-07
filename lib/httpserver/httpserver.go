@@ -35,7 +35,7 @@ var (
 		"then all the http requests will be handled on '/foo/bar/*' paths. This may be useful for proxied requests. "+
 		"See https://www.robustperception.io/using-external-urls-and-proxies-with-prometheus")
 
-	disableResponseCompression  = flag.Bool("http.disableResponseCompression", false, "Disable compression of HTTP responses for saving CPU resources. By default compression is enabled to save network bandwidth")
+	disableResponseCompression  = flag.Bool("http.disableResponseCompression", true, "Disable compression of HTTP responses for saving CPU resources. By default compression is enabled to save network bandwidth")
 	maxGracefulShutdownDuration = flag.Duration("http.maxGracefulShutdownDuration", 7*time.Second, "The maximum duration for graceful shutdown of HTTP server. "+
 		"Highly loaded server may require increased value for graceful shutdown")
 	shutdownDelay = flag.Duration("http.shutdownDelay", 0, "Optional delay before http server shutdown. During this dealy the servier returns non-OK responses "+

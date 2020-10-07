@@ -170,42 +170,94 @@ func StreamsQueryRangeResponse(rs []netstorage.Result) string {
 }
 
 //line app/vmselect/loki/query_range_response.qtpl:51
-func streamstreamsQueryRangeLine(qw422016 *qt422016.Writer, r *netstorage.Result) {
+func StreamTailQueryRangeResponse(qw422016 *qt422016.Writer, rs []netstorage.Result) {
 //line app/vmselect/loki/query_range_response.qtpl:51
-	qw422016.N().S(`{"stream":`)
-//line app/vmselect/loki/query_range_response.qtpl:53
-	streammetricNameObject(qw422016, &r.MetricName)
-//line app/vmselect/loki/query_range_response.qtpl:53
-	qw422016.N().S(`,"values":`)
+	qw422016.N().S(`{"streams":[`)
 //line app/vmselect/loki/query_range_response.qtpl:54
-	streamdatasWithTimestamps(qw422016, r.Datas, r.Timestamps)
-//line app/vmselect/loki/query_range_response.qtpl:54
-	qw422016.N().S(`}`)
+	if len(rs) > 0 {
+//line app/vmselect/loki/query_range_response.qtpl:55
+		streamstreamsQueryRangeLine(qw422016, &rs[0])
 //line app/vmselect/loki/query_range_response.qtpl:56
+		rs = rs[1:]
+
+//line app/vmselect/loki/query_range_response.qtpl:57
+		for i := range rs {
+//line app/vmselect/loki/query_range_response.qtpl:57
+			qw422016.N().S(`,`)
+//line app/vmselect/loki/query_range_response.qtpl:58
+			streamstreamsQueryRangeLine(qw422016, &rs[i])
+//line app/vmselect/loki/query_range_response.qtpl:59
+		}
+//line app/vmselect/loki/query_range_response.qtpl:60
+	}
+//line app/vmselect/loki/query_range_response.qtpl:60
+	qw422016.N().S(`]}`)
+//line app/vmselect/loki/query_range_response.qtpl:63
 }
 
-//line app/vmselect/loki/query_range_response.qtpl:56
-func writestreamsQueryRangeLine(qq422016 qtio422016.Writer, r *netstorage.Result) {
-//line app/vmselect/loki/query_range_response.qtpl:56
+//line app/vmselect/loki/query_range_response.qtpl:63
+func WriteTailQueryRangeResponse(qq422016 qtio422016.Writer, rs []netstorage.Result) {
+//line app/vmselect/loki/query_range_response.qtpl:63
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line app/vmselect/loki/query_range_response.qtpl:56
-	streamstreamsQueryRangeLine(qw422016, r)
-//line app/vmselect/loki/query_range_response.qtpl:56
+//line app/vmselect/loki/query_range_response.qtpl:63
+	StreamTailQueryRangeResponse(qw422016, rs)
+//line app/vmselect/loki/query_range_response.qtpl:63
 	qt422016.ReleaseWriter(qw422016)
-//line app/vmselect/loki/query_range_response.qtpl:56
+//line app/vmselect/loki/query_range_response.qtpl:63
 }
 
-//line app/vmselect/loki/query_range_response.qtpl:56
-func streamsQueryRangeLine(r *netstorage.Result) string {
-//line app/vmselect/loki/query_range_response.qtpl:56
+//line app/vmselect/loki/query_range_response.qtpl:63
+func TailQueryRangeResponse(rs []netstorage.Result) string {
+//line app/vmselect/loki/query_range_response.qtpl:63
 	qb422016 := qt422016.AcquireByteBuffer()
-//line app/vmselect/loki/query_range_response.qtpl:56
-	writestreamsQueryRangeLine(qb422016, r)
-//line app/vmselect/loki/query_range_response.qtpl:56
+//line app/vmselect/loki/query_range_response.qtpl:63
+	WriteTailQueryRangeResponse(qb422016, rs)
+//line app/vmselect/loki/query_range_response.qtpl:63
 	qs422016 := string(qb422016.B)
-//line app/vmselect/loki/query_range_response.qtpl:56
+//line app/vmselect/loki/query_range_response.qtpl:63
 	qt422016.ReleaseByteBuffer(qb422016)
-//line app/vmselect/loki/query_range_response.qtpl:56
+//line app/vmselect/loki/query_range_response.qtpl:63
 	return qs422016
-//line app/vmselect/loki/query_range_response.qtpl:56
+//line app/vmselect/loki/query_range_response.qtpl:63
+}
+
+//line app/vmselect/loki/query_range_response.qtpl:65
+func streamstreamsQueryRangeLine(qw422016 *qt422016.Writer, r *netstorage.Result) {
+//line app/vmselect/loki/query_range_response.qtpl:65
+	qw422016.N().S(`{"stream":`)
+//line app/vmselect/loki/query_range_response.qtpl:67
+	streammetricNameObject(qw422016, &r.MetricName)
+//line app/vmselect/loki/query_range_response.qtpl:67
+	qw422016.N().S(`,"values":`)
+//line app/vmselect/loki/query_range_response.qtpl:68
+	streamdatasWithTimestamps(qw422016, r.Datas, r.Timestamps)
+//line app/vmselect/loki/query_range_response.qtpl:68
+	qw422016.N().S(`}`)
+//line app/vmselect/loki/query_range_response.qtpl:70
+}
+
+//line app/vmselect/loki/query_range_response.qtpl:70
+func writestreamsQueryRangeLine(qq422016 qtio422016.Writer, r *netstorage.Result) {
+//line app/vmselect/loki/query_range_response.qtpl:70
+	qw422016 := qt422016.AcquireWriter(qq422016)
+//line app/vmselect/loki/query_range_response.qtpl:70
+	streamstreamsQueryRangeLine(qw422016, r)
+//line app/vmselect/loki/query_range_response.qtpl:70
+	qt422016.ReleaseWriter(qw422016)
+//line app/vmselect/loki/query_range_response.qtpl:70
+}
+
+//line app/vmselect/loki/query_range_response.qtpl:70
+func streamsQueryRangeLine(r *netstorage.Result) string {
+//line app/vmselect/loki/query_range_response.qtpl:70
+	qb422016 := qt422016.AcquireByteBuffer()
+//line app/vmselect/loki/query_range_response.qtpl:70
+	writestreamsQueryRangeLine(qb422016, r)
+//line app/vmselect/loki/query_range_response.qtpl:70
+	qs422016 := string(qb422016.B)
+//line app/vmselect/loki/query_range_response.qtpl:70
+	qt422016.ReleaseByteBuffer(qb422016)
+//line app/vmselect/loki/query_range_response.qtpl:70
+	return qs422016
+//line app/vmselect/loki/query_range_response.qtpl:70
 }

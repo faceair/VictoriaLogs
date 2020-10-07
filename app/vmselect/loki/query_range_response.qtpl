@@ -48,6 +48,20 @@ See https://prometheus.io/docs/prometheus/latest/querying/api/#range-queries
 }
 {% endfunc %}
 
+{% func TailQueryRangeResponse(rs []netstorage.Result) %}
+{
+	"streams":[
+		{% if len(rs) > 0 %}
+			{%= streamsQueryRangeLine(&rs[0]) %}
+			{% code rs = rs[1:] %}
+			{% for i := range rs %}
+				,{%= streamsQueryRangeLine(&rs[i]) %}
+			{% endfor %}
+		{% endif %}
+	]
+}
+{% endfunc %}
+
 {% func streamsQueryRangeLine(r *netstorage.Result) %}
 {
 	"stream": {%= metricNameObject(&r.MetricName) %},

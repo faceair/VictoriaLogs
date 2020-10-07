@@ -211,6 +211,15 @@ func selectHandler(startTime time.Time, w http.ResponseWriter, r *http.Request, 
 			return true
 		}
 		return true
+	case "loki/api/v1/tail":
+		tailRequests.Inc()
+		httpserver.EnableCORS(w, r)
+		if err := loki.TailHandler(startTime, at, w, r); err != nil {
+			tailErrors.Inc()
+			sendPrometheusError(w, r, err)
+			return true
+		}
+		return true
 	case "loki/api/v1/series":
 		seriesRequests.Inc()
 		httpserver.EnableCORS(w, r)
@@ -318,41 +327,44 @@ func sendPrometheusError(w http.ResponseWriter, r *http.Request, err error) {
 }
 
 var (
-	labelValuesRequests = metrics.NewCounter(`vm_http_requests_total{path="/select/{}/prometheus/api/v1/label/{}/values"}`)
-	labelValuesErrors   = metrics.NewCounter(`vm_http_request_errors_total{path="/select/{}/prometheus/api/v1/label/{}/values"}`)
+	labelValuesRequests = metrics.NewCounter(`vm_http_requests_total{path="/select/{}/loki/api/v1/label/{}/values"}`)
+	labelValuesErrors   = metrics.NewCounter(`vm_http_request_errors_total{path="/select/{}/loki/api/v1/label/{}/values"}`)
 
-	queryRequests = metrics.NewCounter(`vm_http_requests_total{path="/select/{}/prometheus/api/v1/query"}`)
-	queryErrors   = metrics.NewCounter(`vm_http_request_errors_total{path="/select/{}/prometheus/api/v1/query"}`)
+	queryRequests = metrics.NewCounter(`vm_http_requests_total{path="/select/{}/loki/api/v1/query"}`)
+	queryErrors   = metrics.NewCounter(`vm_http_request_errors_total{path="/select/{}/loki/api/v1/query"}`)
 
-	queryRangeRequests = metrics.NewCounter(`vm_http_requests_total{path="/select/{}/prometheus/api/v1/query_range"}`)
-	queryRangeErrors   = metrics.NewCounter(`vm_http_request_errors_total{path="/select/{}/prometheus/api/v1/query_range"}`)
+	queryRangeRequests = metrics.NewCounter(`vm_http_requests_total{path="/select/{}/loki/api/v1/query_range"}`)
+	queryRangeErrors   = metrics.NewCounter(`vm_http_request_errors_total{path="/select/{}/loki/api/v1/query_range"}`)
 
-	seriesRequests = metrics.NewCounter(`vm_http_requests_total{path="/select/{}/prometheus/api/v1/series"}`)
-	seriesErrors   = metrics.NewCounter(`vm_http_request_errors_total{path="/select/{}/prometheus/api/v1/series"}`)
+	tailRequests = metrics.NewCounter(`vm_http_requests_total{path="/select/{}/loki/api/v1/tail"}`)
+	tailErrors   = metrics.NewCounter(`vm_http_request_errors_total{path="/select/{}/loki/api/v1/tail"}`)
 
-	seriesCountRequests = metrics.NewCounter(`vm_http_requests_total{path="/select/{}/prometheus/api/v1/series/count"}`)
-	seriesCountErrors   = metrics.NewCounter(`vm_http_request_errors_total{path="/select/{}/prometheus/api/v1/series/count"}`)
+	seriesRequests = metrics.NewCounter(`vm_http_requests_total{path="/select/{}/loki/api/v1/series"}`)
+	seriesErrors   = metrics.NewCounter(`vm_http_request_errors_total{path="/select/{}/loki/api/v1/series"}`)
 
-	labelsRequests = metrics.NewCounter(`vm_http_requests_total{path="/select/{}/prometheus/api/v1/labels"}`)
-	labelsErrors   = metrics.NewCounter(`vm_http_request_errors_total{path="/select/{}/prometheus/api/v1/labels"}`)
+	seriesCountRequests = metrics.NewCounter(`vm_http_requests_total{path="/select/{}/loki/api/v1/series/count"}`)
+	seriesCountErrors   = metrics.NewCounter(`vm_http_request_errors_total{path="/select/{}/loki/api/v1/series/count"}`)
 
-	labelsCountRequests = metrics.NewCounter(`vm_http_requests_total{path="/select/{}/prometheus/api/v1/labels/count"}`)
-	labelsCountErrors   = metrics.NewCounter(`vm_http_request_errors_total{path="/select/{}/prometheus/api/v1/labels/count"}`)
+	labelsRequests = metrics.NewCounter(`vm_http_requests_total{path="/select/{}/loki/api/v1/label"}`)
+	labelsErrors   = metrics.NewCounter(`vm_http_request_errors_total{path="/select/{}/loki/api/v1/label"}`)
 
-	statusTSDBRequests = metrics.NewCounter(`vm_http_requests_total{path="/select/{}/prometheus/api/v1/status/tsdb"}`)
-	statusTSDBErrors   = metrics.NewCounter(`vm_http_request_errors_total{path="/select/{}/prometheus/api/v1/status/tsdb"}`)
+	labelsCountRequests = metrics.NewCounter(`vm_http_requests_total{path="/select/{}/loki/api/v1/label/count"}`)
+	labelsCountErrors   = metrics.NewCounter(`vm_http_request_errors_total{path="/select/{}/loki/api/v1/label/count"}`)
 
-	statusActiveQueriesRequests = metrics.NewCounter(`vm_http_requests_total{path="/select/{}prometheus/api/v1/status/active_queries"}`)
+	statusTSDBRequests = metrics.NewCounter(`vm_http_requests_total{path="/select/{}/v1/api/v1/status/tsdb"}`)
+	statusTSDBErrors   = metrics.NewCounter(`vm_http_request_errors_total{path="/select/{}/v1/api/v1/status/tsdb"}`)
 
-	deleteRequests = metrics.NewCounter(`vm_http_requests_total{path="/delete/{}/prometheus/api/v1/admin/tsdb/delete_series"}`)
-	deleteErrors   = metrics.NewCounter(`vm_http_request_errors_total{path="/delete/{}/prometheus/api/v1/admin/tsdb/delete_series"}`)
+	statusActiveQueriesRequests = metrics.NewCounter(`vm_http_requests_total{path="/select/{}v1/api/v1/status/active_queries"}`)
 
-	exportRequests = metrics.NewCounter(`vm_http_requests_total{path="/select/{}/prometheus/api/v1/export"}`)
-	exportErrors   = metrics.NewCounter(`vm_http_request_errors_total{path="/select/{}/prometheus/api/v1/export"}`)
+	deleteRequests = metrics.NewCounter(`vm_http_requests_total{path="/delete/{}/v1/api/v1/admin/tsdb/delete_series"}`)
+	deleteErrors   = metrics.NewCounter(`vm_http_request_errors_total{path="/delete/{}/v1/api/v1/admin/tsdb/delete_series"}`)
 
-	exportNativeRequests = metrics.NewCounter(`vm_http_requests_total{path="/select/{}/prometheus/api/v1/export/native"}`)
-	exportNativeErrors   = metrics.NewCounter(`vm_http_request_errors_total{path="/select/{}/prometheus/api/v1/export/native"}`)
+	exportRequests = metrics.NewCounter(`vm_http_requests_total{path="/select/{}/v1/api/v1/export"}`)
+	exportErrors   = metrics.NewCounter(`vm_http_request_errors_total{path="/select/{}/v1/api/v1/export"}`)
 
-	federateRequests = metrics.NewCounter(`vm_http_requests_total{path="/select/{}/prometheus/federate"}`)
-	federateErrors   = metrics.NewCounter(`vm_http_request_errors_total{path="/select/{}/prometheus/federate"}`)
+	exportNativeRequests = metrics.NewCounter(`vm_http_requests_total{path="/select/{}/v1/api/v1/export/native"}`)
+	exportNativeErrors   = metrics.NewCounter(`vm_http_request_errors_total{path="/select/{}/v1/api/v1/export/native"}`)
+
+	federateRequests = metrics.NewCounter(`vm_http_requests_total{path="/select/{}/v1/federate"}`)
+	federateErrors   = metrics.NewCounter(`vm_http_request_errors_total{path="/select/{}/v1/federate"}`)
 )

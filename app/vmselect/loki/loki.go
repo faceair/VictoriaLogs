@@ -3,6 +3,7 @@ package loki
 import (
 	"flag"
 	"fmt"
+	"io"
 	"math"
 	"net/http"
 	"runtime"
@@ -15,6 +16,7 @@ import (
 	"github.com/VictoriaMetrics/VictoriaMetrics/app/vmselect/netstorage"
 	"github.com/VictoriaMetrics/VictoriaMetrics/app/vmselect/querier"
 	"github.com/VictoriaMetrics/VictoriaMetrics/app/vmselect/searchutils"
+	"github.com/VictoriaMetrics/VictoriaMetrics/app/vmselect/websocket"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/auth"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/bytesutil"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/encoding"
@@ -956,9 +958,12 @@ func QueryHandler(startTime time.Time, at *auth.Token, w http.ResponseWriter, r 
 		start -= offset
 		end := start
 		start = end - window
-		if err := queryRangeHandler(startTime, at, w, childQuery, start, end, step, limit, forward, r, ct); err != nil {
+
+		w.Header().Set("Content-Type", "application/json")
+		if _, err := queryRangeHandler(startTime, at, w, childQuery, start, end, step, limit, forward, r, ct); err != nil {
 			return fmt.Errorf("error when executing query=%q on the time range (start=%d, end=%d, step=%d): %w", childQuery, start, end, step, err)
 		}
+
 		queryDuration.UpdateDuration(startTime)
 		return nil
 	}
@@ -1061,30 +1066,79 @@ func QueryRangeHandler(startTime time.Time, at *auth.Token, w http.ResponseWrite
 	}
 	forward := searchutils.GetString(r, "direction", "backward") == "forward"
 
-	if err := queryRangeHandler(startTime, at, w, query, start, end, step, limit, forward, r, ct); err != nil {
+	w.Header().Set("Content-Type", "application/json")
+
+	if _, err := queryRangeHandler(startTime, at, w, query, start, end, step, limit, forward, r, ct); err != nil {
 		return fmt.Errorf("error when executing query=%q on the time range (start=%d, end=%d, step=%d): %w", query, start, end, step, err)
 	}
 	queryRangeDuration.UpdateDuration(startTime)
 	return nil
 }
 
-func queryRangeHandler(startTime time.Time, at *auth.Token, w http.ResponseWriter, query string, start, end, step, limit int64, forward bool, r *http.Request, ct int64) error {
-	deadline := searchutils.GetDeadlineForQuery(r, startTime)
-	mayCache := !searchutils.GetBool(r, "nocache")
-	lookbackDelta, err := getMaxLookback(r)
+func TailHandler(startTime time.Time, at *auth.Token, w http.ResponseWriter, r *http.Request) error {
+	ct := startTime.UnixNano() / 1e6
+	query := r.FormValue("query")
+	if len(query) == 0 {
+		return fmt.Errorf("missing `query` arg")
+	}
+	start, err := searchutils.GetTime(r, "start", ct-defaultStep)
+	if err != nil {
+		return err
+	}
+	limit, err := searchutils.GetInt64(r, "limit", defaultLimit)
 	if err != nil {
 		return err
 	}
 
+	delayFor, err := searchutils.GetInt64(r, "delay_for", 0)
+	if err != nil {
+		return err
+	}
+	time.Sleep(time.Second * time.Duration(delayFor))
+
+	conn, err := websocket.TryUpgrade(w, r)
+	if err != nil {
+		return err
+	}
+
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+
+	var last, end int64
+	for ; true; <-ticker.C {
+		startTime = time.Now()
+		end = startTime.UnixNano() / 1e6
+		result, err := queryRangeHandler(startTime, at, conn, query, start, end, 60, limit, false, r, end)
+		if err != nil {
+			return fmt.Errorf("error when executing query=%q on the time range (start=%d, end=%d, limit=%d): %w", query, start, end, limit, err)
+		}
+		for _, rs := range result {
+			last = rs.Timestamps[len(rs.Timestamps)-1]
+			if last > start {
+				start = last
+			}
+		}
+	}
+	return nil
+}
+
+func queryRangeHandler(startTime time.Time, at *auth.Token, w io.Writer, query string, start, end, step, limit int64, forward bool, r *http.Request, ct int64) ([]netstorage.Result, error) {
+	deadline := searchutils.GetDeadlineForQuery(r, startTime)
+	mayCache := !searchutils.GetBool(r, "nocache")
+	lookbackDelta, err := getMaxLookback(r)
+	if err != nil {
+		return nil, err
+	}
+
 	// Validate input args.
 	if len(query) > maxQueryLen.N {
-		return fmt.Errorf("too long query; got %d bytes; mustn't exceed `-search.maxQueryLen=%d` bytes", len(query), maxQueryLen.N)
+		return nil, fmt.Errorf("too long query; got %d bytes; mustn't exceed `-search.maxQueryLen=%d` bytes", len(query), maxQueryLen.N)
 	}
 	if start > end {
 		end = start + defaultStep
 	}
 	if err := querier.ValidateMaxPointsPerTimeseries(start, end, step); err != nil {
-		return err
+		return nil, err
 	}
 	if mayCache {
 		start, end = querier.AdjustStartEnd(start, end, step)
@@ -1106,10 +1160,9 @@ func queryRangeHandler(startTime time.Time, at *auth.Token, w http.ResponseWrite
 	}
 	result, e, err := querier.Exec(&ec, query, false)
 	if err != nil {
-		return fmt.Errorf("cannot execute query: %w", err)
+		return nil, fmt.Errorf("cannot execute query: %w", err)
 	}
 
-	w.Header().Set("Content-Type", "application/json")
 	bw := bufferedwriter.Get(w)
 	defer bufferedwriter.Put(bw)
 
@@ -1119,7 +1172,11 @@ func queryRangeHandler(startTime time.Time, at *auth.Token, w http.ResponseWrite
 		// See https://github.com/VictoriaMetrics/VictoriaMetrics/issues/153
 		result = removeEmptyValuesAndTimeseries(result)
 
-		WriteStreamsQueryRangeResponse(bw, result)
+		if _, ok := w.(http.ResponseWriter); ok {
+			WriteStreamsQueryRangeResponse(bw, result)
+		} else {
+			WriteTailQueryRangeResponse(bw, result)
+		}
 	default:
 		queryOffset := getLatencyOffsetMilliseconds()
 		if ct-queryOffset < end {
@@ -1134,9 +1191,9 @@ func queryRangeHandler(startTime time.Time, at *auth.Token, w http.ResponseWrite
 	}
 
 	if err := bw.Flush(); err != nil {
-		return err
+		return result, err
 	}
-	return nil
+	return result, nil
 }
 
 func removeEmptyValuesAndTimeseries(tss []netstorage.Result) []netstorage.Result {
