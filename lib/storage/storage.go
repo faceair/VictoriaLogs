@@ -1109,9 +1109,6 @@ func (mr *MetricRow) Unmarshal(src []byte) ([]byte, error) {
 	mr.Timestamp = int64(timestamp)
 	tail = tail[8:]
 
-	if len(tail) < 8 {
-		return tail, fmt.Errorf("cannot unmarshal Value: want %d bytes; have %d bytes", 8, len(tail))
-	}
 	tail, value, err := encoding.UnmarshalBytes(tail)
 	if err != nil {
 		return tail, fmt.Errorf("cannot unmarshal value: %w", err)

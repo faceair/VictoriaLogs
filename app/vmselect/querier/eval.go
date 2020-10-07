@@ -657,35 +657,41 @@ func evalMetricExpr(ec *EvalConfig, me *logql.MetricExpr) ([]*timeseries, error)
 		return nil, nil
 	}
 
-	limit, forward := ec.Limit, ec.Forward
-
 	var tss []*timeseries
 	var tssLock sync.RWMutex
+	var interval int64
+
+	if ec.End > ec.Start {
+		interval = (ec.End - ec.Start) / ec.Limit
+	}
 
 	err = rss.RunParallel(func(rs *netstorage.Result, workerID uint) error {
 		tssLock.Lock()
 
 		var ts timeseries
+		var prevTimestamp int64
 
-		if forward {
-			for i := len(rs.Timestamps) - 1; i >= 0; i-- {
-				if limit <= 0 {
-					break
+		if !ec.Forward {
+			for i := 0; i < len(rs.Timestamps); i++ {
+				currTimestamp, currValue, currData := rs.Timestamps[i], rs.Values[i], rs.Datas[i]
+				if currTimestamp-prevTimestamp < interval {
+					continue
 				}
-				limit--
-				ts.Datas = append(ts.Datas, rs.Datas[i])
-				ts.Values = append(ts.Values, rs.Values[i])
-				ts.Timestamps = append(ts.Timestamps, rs.Timestamps[i])
+				prevTimestamp = currTimestamp
+				ts.Datas = append(ts.Datas, currData)
+				ts.Values = append(ts.Values, currValue)
+				ts.Timestamps = append(ts.Timestamps, currTimestamp)
 			}
 		} else {
-			for i := 0; i < len(rs.Timestamps); i++ {
-				if limit <= 0 {
-					break
+			for i := len(rs.Timestamps) - 1; i >= 0; i-- {
+				currTimestamp, currValue, currData := rs.Timestamps[i], rs.Values[i], rs.Datas[i]
+				if prevTimestamp-currTimestamp < interval {
+					continue
 				}
-				limit--
-				ts.Datas = append(ts.Datas, rs.Datas[i])
-				ts.Values = append(ts.Values, rs.Values[i])
-				ts.Timestamps = append(ts.Timestamps, rs.Timestamps[i])
+				prevTimestamp = currTimestamp
+				ts.Datas = append(ts.Datas, currData)
+				ts.Values = append(ts.Values, currValue)
+				ts.Timestamps = append(ts.Timestamps, currTimestamp)
 			}
 		}
 
