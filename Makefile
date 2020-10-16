@@ -14,9 +14,6 @@ all: \
 	vminsert \
 	vmselect \
 	vmstorage \
-	vmagent \
-	vmalert \
-	vmauth \
 	vmbackup \
 	vmrestore
 
@@ -24,9 +21,6 @@ all-pure: \
 	vminsert-pure \
 	vmselect-pure \
 	vmstorage-pure \
-	vmagent-pure \
-	vmalert-pure \
-	vmauth-pure \
 	vmbackup-pure \
 	vmrestore-pure
 
@@ -40,9 +34,6 @@ publish: \
 	publish-vminsert \
 	publish-vmselect \
 	publish-vmstorage \
-	publish-vmagent \
-	publish-vmalert \
-	publish-vmauth \
 	publish-vmbackup \
 	publish-vmrestore
 
@@ -50,16 +41,10 @@ package: \
 	package-vminsert \
 	package-vmselect \
 	package-vmstorage \
-	package-vmagent \
-	package-vmalert \
-	package-vmauth \
 	package-vmbackup \
 	package-vmrestore
 
 vmutils: \
-	vmagent \
-	vmalert \
-	vmauth \
 	vmbackup \
 	vmrestore
 
@@ -75,9 +60,6 @@ release-vmcluster: \
 		sha256sum victoria-metrics-$(PKG_TAG).tar.gz > victoria-metrics-$(PKG_TAG)_checksums.txt
 
 release-vmutils: \
-	vmagent-prod \
-	vmalert-prod \
-	vmauth-prod \
 	vmbackup-prod \
 	vmrestore-prod
 	cd bin && tar czf vmutils-$(PKG_TAG).tar.gz vmagent-prod vmalert-prod vmauth-prod vmbackup-prod vmrestore-prod && \
@@ -106,9 +88,6 @@ errcheck: install-errcheck
 	errcheck -exclude=errcheck_excludes.txt ./app/vminsert/...
 	errcheck -exclude=errcheck_excludes.txt ./app/vmselect/...
 	errcheck -exclude=errcheck_excludes.txt ./app/vmstorage/...
-	errcheck -exclude=errcheck_excludes.txt ./app/vmagent/...
-	errcheck -exclude=errcheck_excludes.txt ./app/vmalert/...
-	errcheck -exclude=errcheck_excludes.txt ./app/vmauth/...
 	errcheck -exclude=errcheck_excludes.txt ./app/vmbackup/...
 	errcheck -exclude=errcheck_excludes.txt ./app/vmrestore/...
 
@@ -169,9 +148,6 @@ install-golangci-lint:
 	which golangci-lint || GO111MODULE=off go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
 
 docs-sync:
-	cp app/vmagent/README.md docs/vmagent.md
-	cp app/vmalert/README.md docs/vmalert.md
-	cp app/vmauth/README.md docs/vmauth.md
 	cp app/vmbackup/README.md docs/vmbackup.md
 	cp app/vmrestore/README.md docs/vmrestore.md
 	cp README.md docs/Cluster-VictoriaMetrics.md
