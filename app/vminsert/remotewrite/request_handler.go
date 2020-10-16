@@ -38,12 +38,15 @@ func insertRows(at *auth.Token, timeseries []lokipb.Stream) error {
 	ctx.Reset() // This line is required for initializing ctx internals.
 	rowsTotal := 0
 	hasRelabeling := relabel.HasRelabeling()
+
+	var err error
+	var tail []byte
 	for i := range timeseries {
 		ts := &timeseries[i]
 		ctx.Labels = ctx.Labels[:0]
 
 		noEscapes := strings.IndexByte(ts.Labels, '\\') < 0
-		tail, _, err := importerParser.UnmarshalTags(ctx.Labels, bytesutil.ToUnsafeBytes(ts.Labels), noEscapes)
+		tail, ctx.Labels, err = importerParser.UnmarshalTags(ctx.Labels, bytesutil.ToUnsafeBytes(ts.Labels[1:]), noEscapes)
 		if len(tail) > 0 || err != nil {
 			continue
 		}

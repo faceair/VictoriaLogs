@@ -101,7 +101,7 @@ func requestHandler(w http.ResponseWriter, r *http.Request) bool {
 	}
 
 	switch p.Suffix {
-	case "/loki/api/v1/push":
+	case "loki/api/v1/push":
 		prometheusWriteRequests.Inc()
 		if err := remotewrite.InsertHandler(at, r); err != nil {
 			prometheusWriteErrors.Inc()
