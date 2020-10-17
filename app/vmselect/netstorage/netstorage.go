@@ -13,16 +13,16 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/VictoriaMetrics/VictoriaMetrics/app/vmselect/searchutils"
+	"github.com/VictoriaMetrics/VictoriaLogs/app/vmselect/searchutils"
+	"github.com/VictoriaMetrics/VictoriaLogs/lib/encoding"
+	"github.com/VictoriaMetrics/VictoriaLogs/lib/httpserver"
+	"github.com/VictoriaMetrics/VictoriaLogs/lib/storage"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/auth"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/bytesutil"
-	"github.com/VictoriaMetrics/VictoriaMetrics/lib/encoding"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/fasttime"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/handshake"
-	"github.com/VictoriaMetrics/VictoriaMetrics/lib/httpserver"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/logger"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/netutil"
-	"github.com/VictoriaMetrics/VictoriaMetrics/lib/storage"
 	"github.com/VictoriaMetrics/metrics"
 )
 
@@ -1850,15 +1850,6 @@ func writeUint32(bc *handshake.BufferedConn, n uint32) error {
 func writeUint64(bc *handshake.BufferedConn, n uint64) error {
 	buf := encoding.MarshalUint64(nil, n)
 	_, err := bc.Write(buf)
-	return err
-}
-
-func writeBool(bc *handshake.BufferedConn, b bool) error {
-	var buf [1]byte
-	if b {
-		buf[0] = 1
-	}
-	_, err := bc.Write(buf[:])
 	return err
 }
 

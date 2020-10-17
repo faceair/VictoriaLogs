@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/VictoriaMetrics/VictoriaMetrics/lib/storage"
+	"github.com/VictoriaMetrics/VictoriaLogs/lib/storage"
 )
 
 func TestMain(m *testing.M) {

@@ -4,10 +4,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/VictoriaMetrics/VictoriaMetrics/app/vmselect/netstorage"
-	"github.com/VictoriaMetrics/VictoriaMetrics/app/vmselect/searchutils"
+	"github.com/VictoriaMetrics/VictoriaLogs/app/vmselect/netstorage"
+	"github.com/VictoriaMetrics/VictoriaLogs/app/vmselect/searchutils"
+	"github.com/VictoriaMetrics/VictoriaLogs/lib/storage"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/auth"
-	"github.com/VictoriaMetrics/VictoriaMetrics/lib/storage"
 )
 
 func TestExecSuccess(t *testing.T) {
@@ -35,7 +35,7 @@ func TestExecSuccess(t *testing.T) {
 			Deadline: searchutils.NewDeadline(time.Now(), time.Minute, ""),
 		}
 		for i := 0; i < 5; i++ {
-			result, err := Exec(ec, q, false)
+			result, _, err := Exec(ec, q, false)
 			if err != nil {
 				t.Fatalf(`unexpected error when executing %q: %s`, q, err)
 			}
@@ -5914,14 +5914,14 @@ func TestExecError(t *testing.T) {
 			Deadline: searchutils.NewDeadline(time.Now(), time.Minute, ""),
 		}
 		for i := 0; i < 4; i++ {
-			rv, err := Exec(ec, q, false)
+			rv, _, err := Exec(ec, q, false)
 			if err == nil {
 				t.Fatalf(`expecting non-nil error on %q`, q)
 			}
 			if rv != nil {
 				t.Fatalf(`expecting nil rv`)
 			}
-			rv, err = Exec(ec, q, true)
+			rv, _, err = Exec(ec, q, true)
 			if err == nil {
 				t.Fatalf(`expecting non-nil error on %q`, q)
 			}

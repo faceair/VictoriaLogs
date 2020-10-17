@@ -27,21 +27,21 @@ import (
 )
 
 var (
-	tlsEnable   = flag.Bool("tls", false, "Whether to enable TLS (aka HTTPS) for incoming requests. -tlsCertFile and -tlsKeyFile must be set if -tls is set")
-	tlsCertFile = flag.String("tlsCertFile", "", "Path to file with TLS certificate. Used only if -tls is set. Prefer ECDSA certs instead of RSA certs, since RSA certs are slow")
-	tlsKeyFile  = flag.String("tlsKeyFile", "", "Path to file with TLS key. Used only if -tls is set")
+	tlsEnable   = flag.Bool("loki-tls", false, "Whether to enable TLS (aka HTTPS) for incoming requests. -tlsCertFile and -tlsKeyFile must be set if -tls is set")
+	tlsCertFile = flag.String("loki-tlsCertFile", "", "Path to file with TLS certificate. Used only if -tls is set. Prefer ECDSA certs instead of RSA certs, since RSA certs are slow")
+	tlsKeyFile  = flag.String("loki-tlsKeyFile", "", "Path to file with TLS key. Used only if -tls is set")
 
-	pathPrefix = flag.String("http.pathPrefix", "", "An optional prefix to add to all the paths handled by http server. For example, if '-http.pathPrefix=/foo/bar' is set, "+
+	pathPrefix = flag.String("loki-http.pathPrefix", "", "An optional prefix to add to all the paths handled by http server. For example, if '-http.pathPrefix=/foo/bar' is set, "+
 		"then all the http requests will be handled on '/foo/bar/*' paths. This may be useful for proxied requests. "+
 		"See https://www.robustperception.io/using-external-urls-and-proxies-with-prometheus")
 
-	disableResponseCompression  = flag.Bool("http.disableResponseCompression", false, "Disable compression of HTTP responses for saving CPU resources. By default compression is enabled to save network bandwidth")
-	maxGracefulShutdownDuration = flag.Duration("http.maxGracefulShutdownDuration", 7*time.Second, "The maximum duration for graceful shutdown of HTTP server. "+
+	disableResponseCompression  = flag.Bool("loki-http.disableResponseCompression", false, "Disable compression of HTTP responses for saving CPU resources. By default compression is enabled to save network bandwidth")
+	maxGracefulShutdownDuration = flag.Duration("loki-http.maxGracefulShutdownDuration", 7*time.Second, "The maximum duration for graceful shutdown of HTTP server. "+
 		"Highly loaded server may require increased value for graceful shutdown")
-	shutdownDelay = flag.Duration("http.shutdownDelay", 0, "Optional delay before http server shutdown. During this dealy the servier returns non-OK responses "+
+	shutdownDelay = flag.Duration("loki-http.shutdownDelay", 0, "Optional delay before http server shutdown. During this dealy the servier returns non-OK responses "+
 		"from /health page, so load balancers can route new requests to other servers")
-	idleConnTimeout = flag.Duration("http.idleConnTimeout", time.Minute, "Timeout for incoming idle http connections")
-	connTimeout     = flag.Duration("http.connTimeout", 2*time.Minute, "Incoming http connections are closed after the configured timeout. This may help spreading incoming load "+
+	idleConnTimeout = flag.Duration("loki-http.idleConnTimeout", time.Minute, "Timeout for incoming idle http connections")
+	connTimeout     = flag.Duration("loki-http.connTimeout", 2*time.Minute, "Incoming http connections are closed after the configured timeout. This may help spreading incoming load "+
 		"among a cluster of services behind load balancer. Note that the real timeout may be bigger by up to 10% as a protection from Thundering herd problem")
 )
 
@@ -186,8 +186,8 @@ func gzipHandler(s *server, rh RequestHandler) http.HandlerFunc {
 	}
 }
 
-var metricsHandlerDuration = metrics.NewHistogram(`vm_http_request_duration_seconds{path="/metrics"}`)
-var connTimeoutClosedConns = metrics.NewCounter(`vm_http_conn_timeout_closed_conns_total`)
+var metricsHandlerDuration = metrics.NewHistogram(`loki_vm_http_request_duration_seconds{path="/metrics"}`)
+var connTimeoutClosedConns = metrics.NewCounter(`loki_vm_http_conn_timeout_closed_conns_total`)
 
 func handlerWrapper(s *server, w http.ResponseWriter, r *http.Request, rh RequestHandler) {
 	requestsTotal.Inc()
@@ -468,19 +468,19 @@ func pprofHandler(profileName string, w http.ResponseWriter, r *http.Request) {
 }
 
 var (
-	metricsRequests      = metrics.NewCounter(`vm_http_requests_total{path="/metrics"}`)
-	pprofRequests        = metrics.NewCounter(`vm_http_requests_total{path="/debug/pprof/"}`)
-	pprofCmdlineRequests = metrics.NewCounter(`vm_http_requests_total{path="/debug/pprof/cmdline"}`)
-	pprofProfileRequests = metrics.NewCounter(`vm_http_requests_total{path="/debug/pprof/profile"}`)
-	pprofSymbolRequests  = metrics.NewCounter(`vm_http_requests_total{path="/debug/pprof/symbol"}`)
-	pprofTraceRequests   = metrics.NewCounter(`vm_http_requests_total{path="/debug/pprof/trace"}`)
-	pprofMutexRequests   = metrics.NewCounter(`vm_http_requests_total{path="/debug/pprof/mutex"}`)
-	pprofDefaultRequests = metrics.NewCounter(`vm_http_requests_total{path="/debug/pprof/default"}`)
-	faviconRequests      = metrics.NewCounter(`vm_http_requests_total{path="/favicon.ico"}`)
+	metricsRequests      = metrics.NewCounter(`loki_vm_http_requests_total{path="/metrics"}`)
+	pprofRequests        = metrics.NewCounter(`loki_vm_http_requests_total{path="/debug/pprof/"}`)
+	pprofCmdlineRequests = metrics.NewCounter(`loki_vm_http_requests_total{path="/debug/pprof/cmdline"}`)
+	pprofProfileRequests = metrics.NewCounter(`loki_vm_http_requests_total{path="/debug/pprof/profile"}`)
+	pprofSymbolRequests  = metrics.NewCounter(`loki_vm_http_requests_total{path="/debug/pprof/symbol"}`)
+	pprofTraceRequests   = metrics.NewCounter(`loki_vm_http_requests_total{path="/debug/pprof/trace"}`)
+	pprofMutexRequests   = metrics.NewCounter(`loki_vm_http_requests_total{path="/debug/pprof/mutex"}`)
+	pprofDefaultRequests = metrics.NewCounter(`loki_vm_http_requests_total{path="/debug/pprof/default"}`)
+	faviconRequests      = metrics.NewCounter(`loki_vm_http_requests_total{path="/favicon.ico"}`)
 
-	unsupportedRequestErrors = metrics.NewCounter(`vm_http_request_errors_total{path="*", reason="unsupported"}`)
+	unsupportedRequestErrors = metrics.NewCounter(`loki_vm_http_request_errors_total{path="*", reason="unsupported"}`)
 
-	requestsTotal = metrics.NewCounter(`vm_http_requests_all_total`)
+	requestsTotal = metrics.NewCounter(`loki_vm_http_requests_all_total`)
 )
 
 // GetQuotedRemoteAddr returns quoted remote address.

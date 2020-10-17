@@ -8,10 +8,10 @@ import (
 	"runtime"
 	"sync"
 
+	"github.com/VictoriaMetrics/VictoriaLogs/lib/lokipb"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/bytesutil"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/flagutil"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/logger"
-	"github.com/VictoriaMetrics/VictoriaMetrics/lib/lokipb"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/protoparser/common"
 	"github.com/VictoriaMetrics/metrics"
 	"github.com/golang/snappy"

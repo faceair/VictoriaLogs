@@ -3,8 +3,8 @@ package querier
 import (
 	"fmt"
 
-	"github.com/VictoriaMetrics/VictoriaMetrics/lib/logql"
-	"github.com/VictoriaMetrics/VictoriaMetrics/lib/storage"
+	"github.com/VictoriaMetrics/VictoriaLogs/lib/logql"
+	"github.com/VictoriaMetrics/VictoriaLogs/lib/storage"
 )
 
 // IsRollup verifies whether s is a rollup with non-empty window.

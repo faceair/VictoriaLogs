@@ -25,7 +25,7 @@ func BenchmarkDeduplicateSamples(b *testing.B) {
 				for pb.Next() {
 					timestampsCopy := append(timestampsCopy[:0], timestamps...)
 					valuesCopy := append(valuesCopy[:0], values...)
-					ts, vs := DeduplicateSamples(timestampsCopy, valuesCopy)
+					ts, vs, _ := DeduplicateSamples(timestampsCopy, valuesCopy, nil)
 					if len(ts) == 0 || len(vs) == 0 {
 						panic(fmt.Errorf("expecting non-empty results; got\nts=%v\nvs=%v", ts, vs))
 					}

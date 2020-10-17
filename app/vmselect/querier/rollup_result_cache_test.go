@@ -3,9 +3,9 @@ package querier
 import (
 	"testing"
 
+	"github.com/VictoriaMetrics/VictoriaLogs/lib/logql"
+	"github.com/VictoriaMetrics/VictoriaLogs/lib/storage"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/auth"
-	"github.com/VictoriaMetrics/VictoriaMetrics/lib/logql"
-	"github.com/VictoriaMetrics/VictoriaMetrics/lib/storage"
 )
 
 func TestRollupResultCache(t *testing.T) {

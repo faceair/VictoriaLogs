@@ -12,15 +12,15 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/VictoriaMetrics/VictoriaLogs/lib/encoding"
+	"github.com/VictoriaMetrics/VictoriaLogs/lib/httpserver"
+	"github.com/VictoriaMetrics/VictoriaLogs/lib/storage"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/bytesutil"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/consts"
-	"github.com/VictoriaMetrics/VictoriaMetrics/lib/encoding"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/fasttime"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/handshake"
-	"github.com/VictoriaMetrics/VictoriaMetrics/lib/httpserver"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/logger"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/netutil"
-	"github.com/VictoriaMetrics/VictoriaMetrics/lib/storage"
 	"github.com/VictoriaMetrics/metrics"
 )
 
@@ -543,18 +543,6 @@ func (ctx *vmselectRequestCtx) readDataBufBytes(maxDataSize int) error {
 		return fmt.Errorf("cannot read data with size %d: %w; read only %d bytes", dataSize, err, n)
 	}
 	return nil
-}
-
-func (ctx *vmselectRequestCtx) readBool() (bool, error) {
-	ctx.dataBuf = bytesutil.Resize(ctx.dataBuf, 1)
-	if _, err := io.ReadFull(ctx.bc, ctx.dataBuf); err != nil {
-		if err == io.EOF {
-			return false, err
-		}
-		return false, fmt.Errorf("cannot read bool: %w", err)
-	}
-	v := ctx.dataBuf[0] != 0
-	return v, nil
 }
 
 func (ctx *vmselectRequestCtx) readByte() (byte, error) {

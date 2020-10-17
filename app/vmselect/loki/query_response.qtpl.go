@@ -6,7 +6,7 @@ package loki
 
 //line app/vmselect/loki/query_response.qtpl:1
 import (
-	"github.com/VictoriaMetrics/VictoriaMetrics/app/vmselect/netstorage"
+	"github.com/VictoriaMetrics/VictoriaLogs/app/vmselect/netstorage"
 )
 
 // QueryResponse generates response for /api/v1/query.See https://prometheus.io/docs/prometheus/latest/querying/api/#instant-queries

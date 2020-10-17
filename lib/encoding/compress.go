@@ -32,9 +32,9 @@ func DecompressZSTD(dst, src []byte) ([]byte, error) {
 }
 
 var (
-	compressCalls   = metrics.NewCounter(`vm_zstd_block_compress_calls_total`)
-	decompressCalls = metrics.NewCounter(`vm_zstd_block_decompress_calls_total`)
+	compressCalls   = metrics.GetOrCreateCounter(`loki_vm_zstd_block_compress_calls_total`)
+	decompressCalls = metrics.GetOrCreateCounter(`loki_vm_zstd_block_decompress_calls_total`)
 
-	originalBytes   = metrics.NewCounter(`vm_zstd_block_original_bytes_total`)
-	compressedBytes = metrics.NewCounter(`vm_zstd_block_compressed_bytes_total`)
+	originalBytes   = metrics.GetOrCreateCounter(`loki_vm_zstd_block_original_bytes_total`)
+	compressedBytes = metrics.GetOrCreateCounter(`loki_vm_zstd_block_compressed_bytes_total`)
 )

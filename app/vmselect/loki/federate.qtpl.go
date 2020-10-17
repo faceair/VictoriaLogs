@@ -6,7 +6,7 @@ package loki
 
 //line app/vmselect/loki/federate.qtpl:1
 import (
-	"github.com/VictoriaMetrics/VictoriaMetrics/app/vmselect/netstorage"
+	"github.com/VictoriaMetrics/VictoriaLogs/app/vmselect/netstorage"
 )
 
 // Federate writes rs in /federate format.// See https://prometheus.io/docs/prometheus/latest/federation/

@@ -1,5 +1,5 @@
 {% import (
-	"github.com/VictoriaMetrics/VictoriaMetrics/app/vmselect/netstorage"
+	"github.com/VictoriaMetrics/VictoriaLogs/app/vmselect/netstorage"
 ) %}
 
 {% stripspace %}

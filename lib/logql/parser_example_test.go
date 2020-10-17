@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/VictoriaMetrics/VictoriaMetrics/lib/logql"
+	"github.com/VictoriaMetrics/VictoriaLogs/lib/logql"
 )
 
 func ExampleParse() {

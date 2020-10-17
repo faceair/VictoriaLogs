@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"sort"
 
-	"github.com/VictoriaMetrics/VictoriaMetrics/lib/encoding"
+	"github.com/VictoriaMetrics/VictoriaLogs/lib/encoding"
 )
 
 // metaindexRow is a single metaindex row.

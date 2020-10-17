@@ -5,7 +5,7 @@
 package loki
 
 //line app/vmselect/loki/tsdb_status_response.qtpl:1
-import "github.com/VictoriaMetrics/VictoriaMetrics/lib/storage"
+import "github.com/VictoriaMetrics/VictoriaLogs/lib/storage"
 
 // TSDBStatusResponse generates response for /api/v1/status/tsdb .
 

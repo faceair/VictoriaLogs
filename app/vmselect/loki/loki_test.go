@@ -5,13 +5,13 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/VictoriaMetrics/VictoriaMetrics/app/vmselect/netstorage"
+	"github.com/VictoriaMetrics/VictoriaLogs/app/vmselect/netstorage"
 )
 
 func TestRemoveEmptyValuesAndTimeseries(t *testing.T) {
 	f := func(tss []netstorage.Result, tssExpected []netstorage.Result) {
 		t.Helper()
-		tss = removeFilteredValuesAndTimeseries(tss)
+		tss = removeFilteredValuesAndTimeseries(tss, nil)
 		if !reflect.DeepEqual(tss, tssExpected) {
 			t.Fatalf("unexpected result; got %v; want %v", tss, tssExpected)
 		}

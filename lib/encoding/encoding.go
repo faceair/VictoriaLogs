@@ -3,8 +3,8 @@ package encoding
 import (
 	"fmt"
 
+	"github.com/VictoriaMetrics/VictoriaLogs/lib/decimal"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/bytesutil"
-	"github.com/VictoriaMetrics/VictoriaMetrics/lib/decimal"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/fastnum"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/logger"
 )
@@ -41,7 +41,7 @@ const (
 	// if compression doesn't help.
 	MarshalTypeNearestDelta = MarshalType(6)
 
-	// MarshalTypeZSTDBytesArray
+	// MarshalTypeZSTDBytesArray is used for marshaling bytes array
 	MarshalTypeZSTDBytesArray = MarshalType(7)
 
 	// MarshalTypeBytesArray is used instead of MarshalTypeZSTDBytesArray

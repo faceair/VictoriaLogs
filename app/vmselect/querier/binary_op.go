@@ -6,10 +6,10 @@ import (
 	"math"
 	"strings"
 
+	"github.com/VictoriaMetrics/VictoriaLogs/lib/logql"
+	"github.com/VictoriaMetrics/VictoriaLogs/lib/logql/binaryop"
+	"github.com/VictoriaMetrics/VictoriaLogs/lib/storage"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/logger"
-	"github.com/VictoriaMetrics/VictoriaMetrics/lib/logql"
-	"github.com/VictoriaMetrics/VictoriaMetrics/lib/logql/binaryop"
-	"github.com/VictoriaMetrics/VictoriaMetrics/lib/storage"
 )
 
 var binaryOpFuncs = map[string]binaryOpFunc{

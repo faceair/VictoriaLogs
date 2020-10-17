@@ -20,7 +20,7 @@ func TestDeduplicateSamples(t *testing.T) {
 			timestampsCopy[i] = ts
 			values[i] = float64(i)
 		}
-		timestampsCopy, values = DeduplicateSamples(timestampsCopy, values)
+		timestampsCopy, values, _ = DeduplicateSamples(timestampsCopy, values, nil)
 		if !reflect.DeepEqual(timestampsCopy, timestampsExpected) {
 			t.Fatalf("invalid DeduplicateSamples(%v) result;\ngot\n%v\nwant\n%v", timestamps, timestampsCopy, timestampsExpected)
 		}

@@ -6,7 +6,7 @@ package loki
 
 //line app/vmselect/loki/util.qtpl:1
 import (
-	"github.com/VictoriaMetrics/VictoriaMetrics/lib/storage"
+	"github.com/VictoriaMetrics/VictoriaLogs/lib/storage"
 )
 
 //line app/vmselect/loki/util.qtpl:7

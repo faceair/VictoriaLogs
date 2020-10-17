@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/VictoriaMetrics/VictoriaMetrics/lib/storage"
+	"github.com/VictoriaMetrics/VictoriaLogs/lib/storage"
 )
 
 func TestPrevBackslashesCount(t *testing.T) {

@@ -1,6 +1,6 @@
 {% import (
 	"github.com/valyala/quicktemplate"
-	"github.com/VictoriaMetrics/VictoriaMetrics/lib/storage"
+	"github.com/VictoriaMetrics/VictoriaLogs/lib/storage"
 ) %}
 
 {% stripspace %}

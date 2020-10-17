@@ -8,7 +8,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/VictoriaMetrics/VictoriaMetrics/lib/logql"
+	"github.com/VictoriaMetrics/VictoriaLogs/lib/logql"
 )
 
 func TestIncrementalAggr(t *testing.T) {

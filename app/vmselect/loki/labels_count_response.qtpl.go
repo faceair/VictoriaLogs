@@ -5,7 +5,7 @@
 package loki
 
 //line app/vmselect/loki/labels_count_response.qtpl:1
-import "github.com/VictoriaMetrics/VictoriaMetrics/lib/storage"
+import "github.com/VictoriaMetrics/VictoriaLogs/lib/storage"
 
 // LabelsCountResponse generates response for /api/v1/labels/count .
 

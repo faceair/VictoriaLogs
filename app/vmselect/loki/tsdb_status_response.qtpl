@@ -1,4 +1,4 @@
-{% import "github.com/VictoriaMetrics/VictoriaMetrics/lib/storage" %}
+{% import "github.com/VictoriaMetrics/VictoriaLogs/lib/storage" %}
 
 {% stripspace %}
 TSDBStatusResponse generates response for /api/v1/status/tsdb .
