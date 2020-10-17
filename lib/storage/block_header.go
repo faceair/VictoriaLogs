@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/VictoriaMetrics/VictoriaLogs/lib/encoding"
+	"github.com/VictoriaMetrics/VictoriaLogs/lib/encodingext"
+	"github.com/VictoriaMetrics/VictoriaMetrics/lib/encoding"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/logger"
 )
 
@@ -145,10 +146,10 @@ func (bh *blockHeader) validate() error {
 	if bh.RowsCount > 2*maxRowsPerBlock {
 		return fmt.Errorf("too big RowsCount; got %d; cannot exceed %d", bh.RowsCount, 2*maxRowsPerBlock)
 	}
-	if err := encoding.CheckMarshalType(bh.TimestampsMarshalType); err != nil {
+	if err := encodingext.CheckMarshalType(bh.TimestampsMarshalType); err != nil {
 		return fmt.Errorf("unsupported TimestampsMarshalType: %w", err)
 	}
-	if err := encoding.CheckMarshalType(bh.ValuesMarshalType); err != nil {
+	if err := encodingext.CheckMarshalType(bh.ValuesMarshalType); err != nil {
 		return fmt.Errorf("unsupported ValuesMarshalType: %w", err)
 	}
 	if err := encoding.CheckPrecisionBits(bh.PrecisionBits); err != nil {

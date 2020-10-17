@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/VictoriaMetrics/VictoriaLogs/lib/decimal"
 	"github.com/VictoriaMetrics/VictoriaLogs/lib/logql"
 	"github.com/VictoriaMetrics/VictoriaLogs/lib/storage"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/bytesutil"
+	"github.com/VictoriaMetrics/VictoriaMetrics/lib/decimal"
 	"github.com/valyala/histogram"
 )
 

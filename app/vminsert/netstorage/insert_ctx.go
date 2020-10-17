@@ -5,10 +5,10 @@ import (
 	"net/http"
 
 	"github.com/VictoriaMetrics/VictoriaLogs/app/vminsert/relabel"
-	"github.com/VictoriaMetrics/VictoriaLogs/lib/encoding"
-	"github.com/VictoriaMetrics/VictoriaLogs/lib/httpserver"
 	"github.com/VictoriaMetrics/VictoriaLogs/lib/storage"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/auth"
+	"github.com/VictoriaMetrics/VictoriaMetrics/lib/encoding"
+	"github.com/VictoriaMetrics/VictoriaMetrics/lib/httpserver"
 	"github.com/cespare/xxhash/v2"
 	"github.com/lithammer/go-jump-consistent-hash"
 )

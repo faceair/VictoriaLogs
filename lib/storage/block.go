@@ -6,7 +6,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/VictoriaMetrics/VictoriaLogs/lib/encoding"
+	"github.com/VictoriaMetrics/VictoriaLogs/lib/encodingext"
+	"github.com/VictoriaMetrics/VictoriaMetrics/lib/encoding"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/logger"
 )
 
@@ -207,7 +208,7 @@ func (b *Block) MarshalData(timestampsBlockOffset, valuesBlockOffset uint64) ([]
 		logger.Panicf("BUG: the number of values must match the number of timestamps; got %d vs %d", len(values), len(timestamps))
 	}
 
-	b.valuesData, b.bh.ValuesMarshalType = encoding.MarshalValues(b.valuesData[:0], values)
+	b.valuesData, b.bh.ValuesMarshalType = encodingext.MarshalValues(b.valuesData[:0], values)
 	b.bh.ValuesBlockOffset = valuesBlockOffset
 	b.bh.ValuesBlockSize = uint32(len(b.valuesData))
 	b.values = b.values[:0]
@@ -258,7 +259,7 @@ func (b *Block) UnmarshalData(checkValues bool) error {
 	b.timestampsData = b.timestampsData[:0]
 
 	if len(b.valuesData) > 0 {
-		b.values, err = encoding.UnmarshalValues(b.values[:0], b.valuesData, b.bh.ValuesMarshalType, int(b.bh.RowsCount))
+		b.values, err = encodingext.UnmarshalValues(b.values[:0], b.valuesData, b.bh.ValuesMarshalType, int(b.bh.RowsCount))
 		if err != nil {
 			return err
 		}
@@ -349,12 +350,12 @@ func (b *Block) UnmarshalPortable(src []byte) ([]byte, error) {
 	if len(src) < 1 {
 		return src, fmt.Errorf("cannot unmarshal marshalType for timestamps from %d bytes; need at least %d bytes", len(src), 1)
 	}
-	b.bh.TimestampsMarshalType = encoding.MarshalType(src[0])
+	b.bh.TimestampsMarshalType = encodingext.MarshalType(src[0])
 	src = src[1:]
 	if len(src) < 1 {
 		return src, fmt.Errorf("cannot unmarshal marshalType for values from %d bytes; need at least %d bytes", len(src), 1)
 	}
-	b.bh.ValuesMarshalType = encoding.MarshalType(src[0])
+	b.bh.ValuesMarshalType = encodingext.MarshalType(src[0])
 	src = src[1:]
 	b.bh.PrecisionBits = 64
 
