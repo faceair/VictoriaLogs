@@ -14,12 +14,12 @@ import (
 //
 // rowsMerged is atomically updated with the number of merged rows during the merge.
 func mergeBlockStreams(ph *partHeader, bsw *blockStreamWriter, bsrs []*blockStreamReader, stopCh <-chan struct{},
-	dmis *uint64set.Set, rowsMerged, rowsDeleted *uint64) error {
+	dmis *uint64set.Set, retentionDeadline int64, rowsMerged, rowsDeleted *uint64) error {
 	ph.Reset()
 
 	bsm := bsmPool.Get().(*blockStreamMerger)
 	bsm.Init(bsrs)
-	err := mergeBlockStreamsInternal(ph, bsw, bsm, stopCh, dmis, rowsMerged, rowsDeleted)
+	err := mergeBlockStreamsInternal(ph, bsw, bsm, stopCh, dmis, retentionDeadline, rowsMerged, rowsDeleted)
 	bsm.reset()
 	bsmPool.Put(bsm)
 	bsw.MustClose()
@@ -38,7 +38,7 @@ var bsmPool = &sync.Pool{
 var errForciblyStopped = fmt.Errorf("forcibly stopped")
 
 func mergeBlockStreamsInternal(ph *partHeader, bsw *blockStreamWriter, bsm *blockStreamMerger, stopCh <-chan struct{},
-	dmis *uint64set.Set, rowsMerged, rowsDeleted *uint64) error {
+	dmis *uint64set.Set, retentionDeadline int64, rowsMerged, rowsDeleted *uint64) error {
 	// Search for the first block to merge
 	var pendingBlock *Block
 	for bsm.NextBlock() {
@@ -49,6 +49,11 @@ func mergeBlockStreamsInternal(ph *partHeader, bsw *blockStreamWriter, bsm *bloc
 		}
 		if dmis.Has(bsm.Block.bh.TSID.MetricID) {
 			// Skip blocks for deleted metrics.
+			*rowsDeleted += uint64(bsm.Block.bh.RowsCount)
+			continue
+		}
+		if bsm.Block.bh.MaxTimestamp < retentionDeadline {
+			// Skip blocks out of the given retention.
 			*rowsDeleted += uint64(bsm.Block.bh.RowsCount)
 			continue
 		}
@@ -71,6 +76,11 @@ func mergeBlockStreamsInternal(ph *partHeader, bsw *blockStreamWriter, bsm *bloc
 		}
 		if dmis.Has(bsm.Block.bh.TSID.MetricID) {
 			// Skip blocks for deleted metrics.
+			*rowsDeleted += uint64(bsm.Block.bh.RowsCount)
+			continue
+		}
+		if bsm.Block.bh.MaxTimestamp < retentionDeadline {
+			// skip blocks out of the given retention.
 			*rowsDeleted += uint64(bsm.Block.bh.RowsCount)
 			continue
 		}
