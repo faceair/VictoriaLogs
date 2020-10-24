@@ -54,12 +54,15 @@ github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/VictoriaMetrics/VictoriaMetrics v1.44.0-cluster.0.20201017103337-0093ee3cd904 h1:5YQwMWdDkpxSCJ1vDuB/4c4iMBdyna7dZH/tMmr5qJo=
 github.com/VictoriaMetrics/VictoriaMetrics v1.44.0-cluster.0.20201017103337-0093ee3cd904/go.mod h1:ddCnEH76ZJjjykFqQcNLNnhh6iwZawjkS4XGsY5BJ9w=
+github.com/VictoriaMetrics/VictoriaMetrics v1.44.0-cluster.0.20201020114246-0db7c2b50094 h1:mULnLkQSzXJKdnxmE6ZtK4wWghp9AMSm4ZNijeSLSBU=
+github.com/VictoriaMetrics/VictoriaMetrics v1.44.0-cluster.0.20201020114246-0db7c2b50094/go.mod h1:ddCnEH76ZJjjykFqQcNLNnhh6iwZawjkS4XGsY5BJ9w=
 github.com/VictoriaMetrics/fastcache v1.5.7 h1:4y6y0G8PRzszQUYIQHHssv/jgPHAb5qQuuDNdCbyAgw=
 github.com/VictoriaMetrics/fastcache v1.5.7/go.mod h1:ptDBkNMQI4RtmVo8VS/XwRY6RoTu1dAWCbrk+6WsEM8=
 github.com/VictoriaMetrics/fasthttp v1.0.7/go.mod h1:eaGv8oDDOWE8JQa6GgBgpCwjJhRxavmprtf2oWw8b3o=
 github.com/VictoriaMetrics/metrics v1.12.2/go.mod h1:Z1tSfPfngDn12bTfZSCqArT3OPY3u88J12hSoOhuiRE=
 github.com/VictoriaMetrics/metrics v1.12.3 h1:Fe6JHC6MSEKa+BtLhPN8WIvS+HKPzMc2evEpNeCGy7I=
 github.com/VictoriaMetrics/metrics v1.12.3/go.mod h1:Z1tSfPfngDn12bTfZSCqArT3OPY3u88J12hSoOhuiRE=
+github.com/VictoriaMetrics/metricsql v0.7.2 h1:ZdFPiA9Etrf3dow43IcPvLjPi5BYWIYj194wPKIhKfs=
 github.com/VictoriaMetrics/metricsql v0.7.2/go.mod h1:ylO7YITho/Iw6P71oEaGyHbO94bGoGtzWfLGqFhMIg8=
 github.com/allegro/bigcache v1.2.1-0.20190218064605-e24eb225f156 h1:eMwmnE/GDgah4HI848JfFxHt+iPb26b4zyfspmqY0/8=
 github.com/allegro/bigcache v1.2.1-0.20190218064605-e24eb225f156/go.mod h1:Cb/ax3seSYIx7SuZdm2G2xzfwmv3TPSk2ucNfQESPXM=

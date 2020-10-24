@@ -3,7 +3,7 @@ module github.com/VictoriaMetrics/VictoriaLogs
 go 1.14
 
 require (
-	github.com/VictoriaMetrics/VictoriaMetrics v1.44.0-cluster.0.20201017103337-0093ee3cd904
+	github.com/VictoriaMetrics/VictoriaMetrics v1.44.0-cluster.0.20201020114246-0db7c2b50094
 	github.com/VictoriaMetrics/fastcache v1.5.7
 	github.com/VictoriaMetrics/metrics v1.12.3
 	github.com/cespare/xxhash/v2 v2.1.1
