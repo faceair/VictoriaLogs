@@ -33,13 +33,13 @@ var regexpCacheV = func() *regexpCache {
 	rc := &regexpCache{
 		m: make(map[string]*regexpCacheValue),
 	}
-	metrics.NewGauge(`vm_cache_requests_total{type="promql/regexp"}`, func() float64 {
+	metrics.NewGauge(`vm_cache_requests_total{type="logql/regexp"}`, func() float64 {
 		return float64(rc.Requests())
 	})
-	metrics.NewGauge(`vm_cache_misses_total{type="promql/regexp"}`, func() float64 {
+	metrics.NewGauge(`vm_cache_misses_total{type="logql/regexp"}`, func() float64 {
 		return float64(rc.Misses())
 	})
-	metrics.NewGauge(`vm_cache_entries{type="promql/regexp"}`, func() float64 {
+	metrics.NewGauge(`vm_cache_entries{type="logql/regexp"}`, func() float64 {
 		return float64(rc.Len())
 	})
 	return rc
