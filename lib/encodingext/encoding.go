@@ -9,21 +9,12 @@ import (
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/logger"
 )
 
-// minCompressibleBlockSize is the minimum block size in bytes for trying compression.
-//
-// There is no sense in compressing smaller blocks.
-const minCompressibleBlockSize = 128
-
 // MarshalType is the type used for the marshaling.
 type MarshalType = encoding.MarshalType
 
 const (
 	// MarshalTypeZSTDBytesArray is used for marshaling bytes array
 	MarshalTypeZSTDBytesArray = MarshalType(7)
-
-	// MarshalTypeBytesArray is used instead of MarshalTypeZSTDBytesArray
-	// if compression doesn't help.
-	MarshalTypeBytesArray = MarshalType(8)
 )
 
 // CheckMarshalType verifies whether the mt is valid.
@@ -61,26 +52,13 @@ func marshalBytesArray(dst []byte, a [][]byte) (result []byte, mt MarshalType) {
 	}
 	bb := bbPool.Get()
 
-	dst = encoding.MarshalVarUint64(bb.B, uint64(len(a)))
 	for i := 0; i < len(a); i++ {
-		dst = encoding.MarshalBytes(dst, a[i])
+		bb.B = encoding.MarshalBytes(bb.B, a[i])
 	}
+	dst = encoding.CompressZSTDLevel(dst, bb.B, getCompressLevel(len(bb.B)))
 
-	// Try compressing the result.
-	dstOrig := dst
-
-	mt = MarshalTypeBytesArray
-	if len(bb.B) >= minCompressibleBlockSize {
-		mt = MarshalTypeZSTDBytesArray
-		compressLevel := getCompressLevel(len(a))
-		dst = encoding.CompressZSTDLevel(dst, bb.B, compressLevel)
-	}
-	if len(bb.B) < minCompressibleBlockSize || float64(len(dst)-len(dstOrig)) > 0.9*float64(len(bb.B)) {
-		dst = append(dstOrig, bb.B...)
-	}
 	bbPool.Put(bb)
-
-	return dst, mt
+	return dst, MarshalTypeZSTDBytesArray
 }
 
 func unmarshalBytesArray(dst [][]byte, src []byte, mt MarshalType, itemsCount int) ([][]byte, error) {
@@ -98,34 +76,14 @@ func unmarshalBytesArray(dst [][]byte, src []byte, mt MarshalType, itemsCount in
 		if err != nil {
 			return nil, fmt.Errorf("cannot decompress zstd data: %w", err)
 		}
-		tail, c, err := encoding.UnmarshalVarUint64(bb.B)
-		if err != nil {
-			return nil, fmt.Errorf("cannot unmarshal string size: %w", err)
-		}
-		src = tail
 
-		for i := uint64(0); i < c; i++ {
-			tail, b, err := encoding.UnmarshalBytes(src)
+		var b []byte
+		for i := 0; i < itemsCount; i++ {
+			bb.B, b, err = encoding.UnmarshalBytes(bb.B)
 			if err != nil {
 				return nil, err
 			}
-			dst = append(dst, b)
-			src = tail
-		}
-	case MarshalTypeBytesArray:
-		tail, c, err := encoding.UnmarshalVarUint64(src)
-		if err != nil {
-			return nil, fmt.Errorf("cannot unmarshal string size: %w", err)
-		}
-		src = tail
-
-		for i := uint64(0); i < c; i++ {
-			tail, b, err := encoding.UnmarshalBytes(src)
-			if err != nil {
-				return nil, err
-			}
-			dst = append(dst, b)
-			src = tail
+			dst = append(dst, append([]byte(nil), b...))
 		}
 	default:
 		return nil, fmt.Errorf("unknown MarshalType=%d", mt)
