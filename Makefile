@@ -21,7 +21,6 @@ all-pure: \
 	vmstorage-pure
 
 include app/*/Makefile
-include deployment/*/Makefile
 
 clean:
 	rm -rf bin/*
