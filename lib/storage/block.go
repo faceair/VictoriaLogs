@@ -16,7 +16,7 @@ const (
 	maxRowsPerBlock = 8 * 1024
 
 	// The maximum size of values in the block.
-	maxBlockSize = 8 * maxRowsPerBlock
+	maxBlockSize = 512 * maxRowsPerBlock
 )
 
 // Block represents a block of time series values for a single TSID.
