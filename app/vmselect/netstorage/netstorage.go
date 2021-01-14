@@ -57,7 +57,7 @@ func (r *Result) reset() {
 type Results struct {
 	at        *auth.Token
 	tr        storage.TimeRange
-	fetchData uint8
+	fetchData storage.FetchDataOption
 	deadline  searchutils.Deadline
 
 	tbf *tmpBlocksFile
@@ -276,7 +276,7 @@ func (pts *packedTimeseries) Unpack(tbf *tmpBlocksFile, dst *Result, tr storage.
 	if err := dst.MetricName.Unmarshal(bytesutil.ToUnsafeBytes(pts.metricName)); err != nil {
 		return fmt.Errorf("cannot unmarshal metricName %q: %w", pts.metricName, err)
 	}
-	if fetchData == 0 {
+	if fetchData == storage.NotFetch {
 		// Do not spend resources on data reading and unpacking.
 		return nil
 	}
@@ -1053,7 +1053,7 @@ func ExportBlocks(at *auth.Token, sq *storage.SearchQuery, deadline searchutils.
 		metricNamePool.Put(mn)
 		return nil
 	}
-	isPartialResult, err := processSearchQuery(at, sq, 1, processBlock, deadline)
+	isPartialResult, err := processSearchQuery(at, sq, processBlock, deadline)
 	if err != nil {
 		return true, fmt.Errorf("error occured during export: %w", err)
 	}
@@ -1063,7 +1063,7 @@ func ExportBlocks(at *auth.Token, sq *storage.SearchQuery, deadline searchutils.
 // ProcessSearchQuery performs sq until the given deadline.
 //
 // Results.RunParallel or Results.Cancel must be called on the returned Results.
-func ProcessSearchQuery(at *auth.Token, sq *storage.SearchQuery, fetchData uint8, deadline searchutils.Deadline) (*Results, bool, error) {
+func ProcessSearchQuery(at *auth.Token, sq *storage.SearchQuery, deadline searchutils.Deadline) (*Results, bool, error) {
 	if deadline.Exceeded() {
 		return nil, false, fmt.Errorf("timeout exceeded before starting the query processing: %s", deadline.String())
 	}
@@ -1076,7 +1076,7 @@ func ProcessSearchQuery(at *auth.Token, sq *storage.SearchQuery, fetchData uint8
 		m:   make(map[string][]tmpBlockAddr),
 	}
 	processBlock := func(mb *storage.MetricBlock) error {
-		if fetchData == 0 {
+		if sq.FetchData == storage.NotFetch {
 			tbfw.RegisterEmptyBlock(mb)
 			return nil
 		}
@@ -1085,7 +1085,7 @@ func ProcessSearchQuery(at *auth.Token, sq *storage.SearchQuery, fetchData uint8
 		}
 		return nil
 	}
-	isPartialResult, err := processSearchQuery(at, sq, fetchData, processBlock, deadline)
+	isPartialResult, err := processSearchQuery(at, sq, processBlock, deadline)
 	if err != nil {
 		putTmpBlocksFile(tbfw.tbf)
 		return nil, true, fmt.Errorf("error occured during search: %w", err)
@@ -1098,7 +1098,7 @@ func ProcessSearchQuery(at *auth.Token, sq *storage.SearchQuery, fetchData uint8
 	var rss Results
 	rss.at = at
 	rss.tr = tr
-	rss.fetchData = fetchData
+	rss.fetchData = sq.FetchData
 	rss.deadline = deadline
 	rss.tbf = tbfw.tbf
 	pts := make([]packedTimeseries, len(tbfw.orderedMetricNames))
@@ -1112,7 +1112,7 @@ func ProcessSearchQuery(at *auth.Token, sq *storage.SearchQuery, fetchData uint8
 	return &rss, isPartialResult, nil
 }
 
-func processSearchQuery(at *auth.Token, sq *storage.SearchQuery, fetchData uint8, processBlock func(mb *storage.MetricBlock) error, deadline searchutils.Deadline) (bool, error) {
+func processSearchQuery(at *auth.Token, sq *storage.SearchQuery, processBlock func(mb *storage.MetricBlock) error, deadline searchutils.Deadline) (bool, error) {
 	requestData := sq.Marshal(nil)
 
 	// Send the query to all the storage nodes in parallel.
@@ -1120,7 +1120,7 @@ func processSearchQuery(at *auth.Token, sq *storage.SearchQuery, fetchData uint8
 	for _, sn := range storageNodes {
 		go func(sn *storageNode) {
 			sn.searchRequests.Inc()
-			err := sn.processSearchQuery(requestData, fetchData, processBlock, deadline)
+			err := sn.processSearchQuery(requestData, processBlock, deadline)
 			if err != nil {
 				sn.searchRequestErrors.Inc()
 				err = fmt.Errorf("cannot perform search on vmstorage %s: %w", sn.connPool.Addr(), err)
@@ -1360,10 +1360,10 @@ func (sn *storageNode) getSeriesCount(accountID, projectID uint32, deadline sear
 	return n, nil
 }
 
-func (sn *storageNode) processSearchQuery(requestData []byte, fetchData uint8, processBlock func(mb *storage.MetricBlock) error, deadline searchutils.Deadline) error {
+func (sn *storageNode) processSearchQuery(requestData []byte, processBlock func(mb *storage.MetricBlock) error, deadline searchutils.Deadline) error {
 	var blocksRead int
 	f := func(bc *handshake.BufferedConn) error {
-		n, err := sn.processSearchQueryOnConn(bc, requestData, fetchData, processBlock)
+		n, err := sn.processSearchQueryOnConn(bc, requestData, processBlock)
 		if err != nil {
 			return err
 		}
@@ -1780,13 +1780,10 @@ const maxMetricBlockSize = 1024 * 1024
 // from vmstorage.
 const maxErrorMessageSize = 64 * 1024
 
-func (sn *storageNode) processSearchQueryOnConn(bc *handshake.BufferedConn, requestData []byte, fetchData uint8, processBlock func(mb *storage.MetricBlock) error) (int, error) {
+func (sn *storageNode) processSearchQueryOnConn(bc *handshake.BufferedConn, requestData []byte, processBlock func(mb *storage.MetricBlock) error) (int, error) {
 	// Send the request to sn.
 	if err := writeBytes(bc, requestData); err != nil {
 		return 0, fmt.Errorf("cannot write requestData: %w", err)
-	}
-	if err := writeByte(bc, fetchData); err != nil {
-		return 0, fmt.Errorf("cannot write fetchData=%v: %w", fetchData, err)
 	}
 	if err := bc.Flush(); err != nil {
 		return 0, fmt.Errorf("cannot flush requestData to conn: %w", err)

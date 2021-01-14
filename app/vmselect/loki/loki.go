@@ -87,8 +87,9 @@ func FederateHandler(startTime time.Time, at *auth.Token, w http.ResponseWriter,
 		MinTimestamp: start,
 		MaxTimestamp: end,
 		TagFilterss:  tagFilterss,
+		FetchData:    storage.FetchAll,
 	}
-	rss, isPartial, err := netstorage.ProcessSearchQuery(at, sq, 2, deadline)
+	rss, isPartial, err := netstorage.ProcessSearchQuery(at, sq, deadline)
 	if err != nil {
 		return fmt.Errorf("cannot fetch data for %q: %w", sq, err)
 	}
@@ -156,6 +157,7 @@ func ExportNativeHandler(startTime time.Time, at *auth.Token, w http.ResponseWri
 		MinTimestamp: start,
 		MaxTimestamp: end,
 		TagFilterss:  tagFilterss,
+		FetchData:    storage.FetchAll,
 	}
 	w.Header().Set("Content-Type", "VictoriaMetrics/native")
 	bw := bufferedwriter.Get(w)
@@ -316,6 +318,7 @@ func exportHandler(at *auth.Token, w http.ResponseWriter, r *http.Request, match
 		MinTimestamp: start,
 		MaxTimestamp: end,
 		TagFilterss:  tagFilterss,
+		FetchData:    storage.FetchAll,
 	}
 	w.Header().Set("Content-Type", contentType)
 	bw := bufferedwriter.Get(w)
@@ -324,7 +327,7 @@ func exportHandler(at *auth.Token, w http.ResponseWriter, r *http.Request, match
 	resultsCh := make(chan *quicktemplate.ByteBuffer, runtime.GOMAXPROCS(-1))
 	doneCh := make(chan error)
 	if !reduceMemUsage {
-		rss, isPartial, err := netstorage.ProcessSearchQuery(at, sq, 2, deadline)
+		rss, isPartial, err := netstorage.ProcessSearchQuery(at, sq, deadline)
 		if err != nil {
 			return fmt.Errorf("cannot fetch data for %q: %w", sq, err)
 		}
@@ -568,8 +571,9 @@ func labelValuesWithMatches(at *auth.Token, labelName string, matches []string, 
 		MinTimestamp: start,
 		MaxTimestamp: end,
 		TagFilterss:  tagFilterss,
+		FetchData:    storage.NotFetch,
 	}
-	rss, isPartial, err := netstorage.ProcessSearchQuery(at, sq, 0, deadline)
+	rss, isPartial, err := netstorage.ProcessSearchQuery(at, sq, deadline)
 	if err != nil {
 		return nil, false, fmt.Errorf("cannot fetch data for %q: %w", sq, err)
 	}
@@ -746,8 +750,9 @@ func labelsWithMatches(at *auth.Token, matches []string, start, end int64, deadl
 		MinTimestamp: start,
 		MaxTimestamp: end,
 		TagFilterss:  tagFilterss,
+		FetchData:    storage.NotFetch,
 	}
-	rss, isPartial, err := netstorage.ProcessSearchQuery(at, sq, 0, deadline)
+	rss, isPartial, err := netstorage.ProcessSearchQuery(at, sq, deadline)
 	if err != nil {
 		return nil, false, fmt.Errorf("cannot fetch data for %q: %w", sq, err)
 	}
@@ -843,8 +848,9 @@ func SeriesHandler(startTime time.Time, at *auth.Token, w http.ResponseWriter, r
 		MinTimestamp: start,
 		MaxTimestamp: end,
 		TagFilterss:  tagFilterss,
+		FetchData:    storage.NotFetch,
 	}
-	rss, isPartial, err := netstorage.ProcessSearchQuery(at, sq, 0, deadline)
+	rss, isPartial, err := netstorage.ProcessSearchQuery(at, sq, deadline)
 	if err != nil {
 		return fmt.Errorf("cannot fetch data for %q: %w", sq, err)
 	}

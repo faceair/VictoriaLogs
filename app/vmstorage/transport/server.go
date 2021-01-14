@@ -979,10 +979,6 @@ func (s *Server) processVMSelectSearchQuery(ctx *vmselectRequestCtx) error {
 	if len(tail) > 0 {
 		return fmt.Errorf("unexpected non-zero tail left after unmarshaling SearchQuery: (len=%d) %q", len(tail), tail)
 	}
-	fetchData, err := ctx.readByte()
-	if err != nil {
-		return fmt.Errorf("cannot read `fetchData` bool: %w", err)
-	}
 
 	// Setup search.
 	if err := ctx.setupTfss(); err != nil {
@@ -1009,7 +1005,7 @@ func (s *Server) processVMSelectSearchQuery(ctx *vmselectRequestCtx) error {
 	// Send found blocks to vmselect.
 	for ctx.sr.NextMetricBlock() {
 		ctx.mb.MetricName = ctx.sr.MetricBlockRef.MetricName
-		ctx.sr.MetricBlockRef.BlockRef.MustReadBlock(&ctx.mb.Block, fetchData)
+		ctx.sr.MetricBlockRef.BlockRef.MustReadBlock(&ctx.mb.Block, ctx.sq.FetchData)
 
 		vmselectMetricBlocksRead.Inc()
 		vmselectMetricRowsRead.Add(ctx.mb.Block.RowsCount())

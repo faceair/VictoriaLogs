@@ -38,11 +38,11 @@ func (br *BlockRef) MustReadBlock(dst *Block, fetchData uint8) {
 	dst.bh = br.bh
 
 	switch fetchData {
-	case 1:
+	case OnlyFetchTime:
 		dst.timestampsData = bytesutil.Resize(dst.timestampsData[:0], int(br.bh.TimestampsBlockSize))
 		br.p.timestampsFile.MustReadAt(dst.timestampsData, int64(br.bh.TimestampsBlockOffset))
 
-	case 2:
+	case FetchAll:
 		dst.timestampsData = bytesutil.Resize(dst.timestampsData[:0], int(br.bh.TimestampsBlockSize))
 		br.p.timestampsFile.MustReadAt(dst.timestampsData, int64(br.bh.TimestampsBlockOffset))
 
@@ -252,6 +252,14 @@ func (s *Search) NextMetricBlock() bool {
 	return false
 }
 
+type FetchDataOption = uint8
+
+const (
+	NotFetch      FetchDataOption = 1
+	OnlyFetchTime                 = iota
+	FetchAll
+)
+
 // SearchQuery is used for sending search queries from vmselect to vmstorage.
 type SearchQuery struct {
 	AccountID    uint32
@@ -259,6 +267,9 @@ type SearchQuery struct {
 	MinTimestamp int64
 	MaxTimestamp int64
 	TagFilterss  [][]TagFilter
+	Limit        int64
+	Forward      bool
+	FetchData    FetchDataOption
 }
 
 // TagFilter represents a single tag filter from SearchQuery.
@@ -362,6 +373,14 @@ func (sq *SearchQuery) Marshal(dst []byte) []byte {
 			dst = tagFilters[i].Marshal(dst)
 		}
 	}
+	dst = encoding.MarshalVarInt64(dst, sq.Limit)
+
+	switch sq.Forward {
+	case false:
+		dst = append(dst, sq.FetchData)
+	case true:
+		dst = append(dst, FetchAll+sq.FetchData)
+	}
 	return dst
 }
 
@@ -424,6 +443,23 @@ func (sq *SearchQuery) Unmarshal(src []byte) ([]byte, error) {
 		}
 		sq.TagFilterss[i] = tagFilters
 	}
+
+	tail, limit, err := encoding.UnmarshalVarInt64(src)
+	if err != nil {
+		return src, fmt.Errorf("cannot unmarshal limit: %w", err)
+	}
+	sq.Limit = limit
+	src = tail
+
+	x := src[0]
+	if x <= FetchAll {
+		sq.Forward = false
+		sq.FetchData = x
+	} else {
+		sq.Forward = true
+		sq.FetchData = x - FetchAll
+	}
+	src = src[1:]
 
 	return src, nil
 }
