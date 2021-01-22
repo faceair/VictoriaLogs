@@ -167,6 +167,9 @@ type tagFilter struct {
 	isRegexp   bool
 	matchCost  uint64
 
+	rangeMinTime uint64
+	rangeMaxTime uint64
+
 	// Prefix always contains {nsPrefixTagToMetricIDs, AccountID, ProjectID, key}.
 	// Additionally it contains:
 	//  - value if !isRegexp.

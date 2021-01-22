@@ -991,7 +991,7 @@ func (s *Server) processVMSelectSearchQuery(ctx *vmselectRequestCtx) error {
 	if err := checkTimeRange(s.storage, tr); err != nil {
 		return ctx.writeErrorMessage(err)
 	}
-	ctx.sr.Init(s.storage, ctx.tfss, tr, *maxMetricsPerSearch, ctx.deadline)
+	ctx.sr.Init(s.storage, ctx.tfss, tr, int(ctx.sq.Limit), *maxMetricsPerSearch, ctx.deadline)
 	defer ctx.sr.MustClose()
 	if err := ctx.sr.Error(); err != nil {
 		return ctx.writeErrorMessage(err)

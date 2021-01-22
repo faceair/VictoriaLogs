@@ -169,7 +169,7 @@ func (s *Search) reset() {
 // MustClose must be called when the search is done.
 //
 // Init returns the upper bound on the number of found time series.
-func (s *Search) Init(storage *Storage, tfss []*TagFilters, tr TimeRange, maxMetrics int, deadline uint64) int {
+func (s *Search) Init(storage *Storage, tfss []*TagFilters, tr TimeRange, limit, maxMetrics int, deadline uint64) int {
 	if s.needClosing {
 		logger.Panicf("BUG: missing MustClose call before the next call to Init")
 	}
@@ -180,7 +180,7 @@ func (s *Search) Init(storage *Storage, tfss []*TagFilters, tr TimeRange, maxMet
 	s.deadline = deadline
 	s.needClosing = true
 
-	tsids, err := storage.searchTSIDs(tfss, tr, maxMetrics, deadline)
+	tsids, err := storage.searchTSIDs(tfss, tr, limit, maxMetrics, deadline)
 	if err == nil {
 		err = storage.prefetchMetricNames(tsids, deadline)
 	}

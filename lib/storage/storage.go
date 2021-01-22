@@ -859,7 +859,7 @@ func nextRetentionDuration(retentionMonths int) time.Duration {
 }
 
 // searchTSIDs returns sorted TSIDs for the given tfss and the given tr.
-func (s *Storage) searchTSIDs(tfss []*TagFilters, tr TimeRange, maxMetrics int, deadline uint64) ([]TSID, error) {
+func (s *Storage) searchTSIDs(tfss []*TagFilters, tr TimeRange, limit, maxMetrics int, deadline uint64) ([]TSID, error) {
 	// Do not cache tfss -> tsids here, since the caching is performed
 	// on idb level.
 
@@ -888,7 +888,7 @@ func (s *Storage) searchTSIDs(tfss []*TagFilters, tr TimeRange, maxMetrics int, 
 				cap(searchTSIDsConcurrencyCh), timeout.Seconds())
 		}
 	}
-	tsids, err := s.idb().searchTSIDs(tfss, tr, maxMetrics, deadline)
+	tsids, err := s.idb().searchTSIDs(tfss, tr, limit, maxMetrics, deadline)
 	<-searchTSIDsConcurrencyCh
 	if err != nil {
 		return nil, fmt.Errorf("error when searching tsids: %w", err)
@@ -1406,6 +1406,7 @@ func (s *Storage) updatePerDateData(rows []rawRow) error {
 	todayShare16bit := uint64((float64(fasttime.UnixTimestamp()%(3600*24)) / (3600 * 24)) * (1 << 16))
 	type pendingDateMetricID struct {
 		date      uint64
+		timestamp uint64
 		metricID  uint64
 		accountID uint32
 		projectID uint32
@@ -1434,6 +1435,7 @@ func (s *Storage) updatePerDateData(rows []rawRow) error {
 					pendingDateMetricIDs = append(pendingDateMetricIDs, pendingDateMetricID{
 						date:      date + 1,
 						metricID:  metricID,
+						timestamp: uint64(r.Timestamp),
 						accountID: r.TSID.AccountID,
 						projectID: r.TSID.ProjectID,
 					})
@@ -1468,6 +1470,7 @@ func (s *Storage) updatePerDateData(rows []rawRow) error {
 			pendingDateMetricIDs = append(pendingDateMetricIDs, pendingDateMetricID{
 				date:      date,
 				metricID:  metricID,
+				timestamp: uint64(r.Timestamp),
 				accountID: r.TSID.AccountID,
 				projectID: r.TSID.ProjectID,
 			})
@@ -1504,6 +1507,7 @@ func (s *Storage) updatePerDateData(rows []rawRow) error {
 	prevDate = 0
 	for _, dateMetricID := range pendingDateMetricIDs {
 		date := dateMetricID.date
+		timestamp := dateMetricID.timestamp
 		metricID := dateMetricID.metricID
 		if metricID == prevMetricID && date == prevDate {
 			// Fast path for bulk import of multiple rows with the same (date, metricID) pairs.
@@ -1518,6 +1522,15 @@ func (s *Storage) updatePerDateData(rows []rawRow) error {
 		}
 		is.accountID = dateMetricID.accountID
 		is.projectID = dateMetricID.projectID
+
+		//  The (tag, time, metricID) entry always add it there.
+		if err := is.storeTimeMetricID(timestamp, metricID); err != nil {
+			if firstError == nil {
+				firstError = fmt.Errorf("error when storing (date=%d, metricID=%d) in database: %w", date, metricID, err)
+			}
+			continue
+		}
+
 		ok, err := is.hasDateMetricID(date, metricID)
 		if err != nil {
 			if firstError == nil {
