@@ -702,7 +702,7 @@ func LabelsHandler(startTime time.Time, at *auth.Token, w http.ResponseWriter, r
 		// i.e. /api/v1/labels?match[]=foobar{baz="abc"}&start=...&end=...
 		matches := r.Form["match[]"]
 		if len(matches) == 0 {
-			matches = []string{"{__name__!=''}"}
+			matches = []string{"{job!=''}"}
 		}
 		ct := startTime.UnixNano() / 1e6
 		end, err := searchutils.GetTime(r, "end", ct)

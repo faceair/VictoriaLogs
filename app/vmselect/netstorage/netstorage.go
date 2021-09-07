@@ -367,6 +367,7 @@ func mergeSortBlocks(dst *Result, sbh sortBlocksHeap) {
 			timestamps := top.Timestamps[top.NextIdx:]
 			for i := 0; i < len(timestamps); i++ {
 				dst.Values = append(dst.Values, 1)
+				top.Values = append(top.Values, []byte{1})
 			}
 			dst.Timestamps = append(dst.Timestamps, timestamps...)
 			dst.Datas = append(dst.Datas, top.Values[top.NextIdx:]...)
@@ -385,6 +386,7 @@ func mergeSortBlocks(dst *Result, sbh sortBlocksHeap) {
 		timestamps := top.Timestamps[top.NextIdx:idxNext]
 		for i := 0; i < len(timestamps); i++ {
 			dst.Values = append(dst.Values, 1)
+			top.Values = append(top.Values, []byte{1})
 		}
 		dst.Timestamps = append(dst.Timestamps, timestamps...)
 		dst.Datas = append(dst.Datas, top.Values[top.NextIdx:idxNext]...)
