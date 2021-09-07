@@ -195,7 +195,7 @@ func evalExpr(ec *EvalConfig, e logql.Expr, isRoot bool) ([]*timeseries, error) 
 		return rv, nil
 	}
 	if re, ok := e.(*logql.RollupExpr); ok {
-		rv, err := evalRollupFunc(ec, "d efault_rollup", rollupDefault, e, re, nil)
+		rv, err := evalRollupFunc(ec, "default_rollup", rollupDefault, e, re, nil)
 		if err != nil {
 			return nil, fmt.Errorf(`cannot evaluate %q: %w`, re.AppendString(nil), err)
 		}
