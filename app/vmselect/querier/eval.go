@@ -646,7 +646,7 @@ func evalMetricExpr(ec *EvalConfig, me *logql.MetricExpr) ([]*timeseries, error)
 		Forward:      ec.Forward,
 		FetchData:    storage.FetchAll,
 	}
-	rss, isPartial, err := netstorage.ProcessSearchQuery(ec.AuthToken, sq, ec.Deadline)
+	rss, isPartial, err := netstorage.ProcessSearchQuery(ec.AuthToken, ec.DenyPartialResponse, sq, ec.Deadline)
 	if err != nil {
 		return nil, err
 	}
@@ -763,7 +763,7 @@ func evalRollupFuncWithMetricExpr(ec *EvalConfig, name string, rf rollupFunc,
 		TagFilterss:  [][]storage.TagFilter{tfs},
 		FetchData:    storage.OnlyFetchTime,
 	}
-	rss, isPartial, err := netstorage.ProcessSearchQuery(ec.AuthToken, sq, ec.Deadline)
+	rss, isPartial, err := netstorage.ProcessSearchQuery(ec.AuthToken, ec.DenyPartialResponse, sq, ec.Deadline)
 	if err != nil {
 		return nil, err
 	}
