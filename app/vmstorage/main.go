@@ -19,6 +19,7 @@ import (
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/httpserver"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/logger"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/procutil"
+	"github.com/VictoriaMetrics/VictoriaMetrics/lib/protoparser/common"
 	"github.com/VictoriaMetrics/metrics"
 )
 
@@ -72,7 +73,7 @@ func main() {
 
 	registerStorageMetrics(strg)
 
-	transport.StartUnmarshalWorkers()
+	common.StartUnmarshalWorkers()
 	srv, err := transport.NewServer(*vminsertAddr, *vmselectAddr, strg)
 	if err != nil {
 		logger.Fatalf("cannot create a server with vminsertAddr=%s, vmselectAddr=%s: %s", *vminsertAddr, *vmselectAddr, err)
@@ -99,7 +100,7 @@ func main() {
 	logger.Infof("gracefully shutting down the service")
 	startTime = time.Now()
 	srv.MustClose()
-	transport.StopUnmarshalWorkers()
+	common.StopUnmarshalWorkers()
 	logger.Infof("successfully shut down the service in %.3f seconds", time.Since(startTime).Seconds())
 
 	logger.Infof("gracefully closing the storage at %s", *storageDataPath)

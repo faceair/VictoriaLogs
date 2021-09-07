@@ -1120,6 +1120,62 @@ func (mr *MetricRow) Unmarshal(src []byte) ([]byte, error) {
 	return tail, nil
 }
 
+// UnmarshalMetricRows appends unmarshaled MetricRow items from src to dst and returns the result.
+//
+// Up to maxRows rows are unmarshaled at once. The remaining byte slice is returned to the caller.
+//
+// The returned MetricRow items refer to src, so they become invalid as soon as src changes.
+func UnmarshalMetricRows(dst []MetricRow, src []byte, maxRows int) ([]MetricRow, []byte, error) {
+	for len(src) > 0 && maxRows > 0 {
+		if len(dst) < cap(dst) {
+			dst = dst[:len(dst)+1]
+		} else {
+			dst = append(dst, MetricRow{})
+		}
+		mr := &dst[len(dst)-1]
+		tail, err := mr.UnmarshalX(src)
+		if err != nil {
+			return dst, tail, err
+		}
+		src = tail
+		maxRows--
+	}
+	return dst, src, nil
+}
+
+// UnmarshalX unmarshals mr from src and returns the remaining tail from src.
+//
+// mr refers to src, so it remains valid until src changes.
+func (mr *MetricRow) UnmarshalX(src []byte) ([]byte, error) {
+	tail, metricNameRaw, err := encoding.UnmarshalBytes(src)
+	if err != nil {
+		return tail, fmt.Errorf("cannot unmarshal MetricName: %w", err)
+	}
+	mr.MetricNameRaw = metricNameRaw
+
+	if len(tail) < 8 {
+		return tail, fmt.Errorf("cannot unmarshal Timestamp: want %d bytes; have %d bytes", 8, len(tail))
+	}
+	timestamp := encoding.UnmarshalUint64(tail)
+	mr.Timestamp = int64(timestamp)
+	tail = tail[8:]
+
+	// if len(tail) < 8 {
+	//     return tail, fmt.Errorf("cannot unmarshal Value: want %d bytes; have %d bytes", 8, len(tail))
+	// }
+	// value := encoding.UnmarshalUint64(tail)
+	// mr.Value = math.Float64frombits(value)
+	// tail = tail[8:]
+
+	tail, value, err := encoding.UnmarshalBytes(tail)
+	if err != nil {
+		return tail, fmt.Errorf("cannot unmarshal value: %w", err)
+	}
+	mr.Value = value
+
+	return tail, nil
+}
+
 // ForceMergePartitions force-merges partitions in s with names starting from the given partitionNamePrefix.
 //
 // Partitions are merged sequentially in order to reduce load on the system.
