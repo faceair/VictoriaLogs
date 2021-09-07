@@ -665,16 +665,18 @@ func evalMetricExpr(ec *EvalConfig, me *logql.MetricExpr) ([]*timeseries, error)
 	var count int64
 
 	err = rss.RunParallel(func(rs *netstorage.Result, workerID uint) error {
-		tssLock.Lock()
 
+		if count >= ec.Limit {
+			return errReachedLimit
+		}
 		var ts timeseries
 
 		if ec.Forward {
 			for i := 0; i < len(rs.Timestamps); i++ {
-				count++
-				if count > ec.Limit {
+				if count >= ec.Limit {
 					break
 				}
+				count++
 				currTimestamp, currValue, currData := rs.Timestamps[i], rs.Values[i], rs.Datas[i]
 				ts.Datas = append(ts.Datas, currData)
 				ts.Values = append(ts.Values, currValue)
@@ -682,10 +684,10 @@ func evalMetricExpr(ec *EvalConfig, me *logql.MetricExpr) ([]*timeseries, error)
 			}
 		} else {
 			for i := len(rs.Timestamps) - 1; i >= 0; i-- {
-				count++
-				if count > ec.Limit {
+				if count >= ec.Limit {
 					break
 				}
+				count++
 				currTimestamp, currValue, currData := rs.Timestamps[i], rs.Values[i], rs.Datas[i]
 				ts.Datas = append(ts.Datas, currData)
 				ts.Values = append(ts.Values, currValue)
@@ -696,10 +698,11 @@ func evalMetricExpr(ec *EvalConfig, me *logql.MetricExpr) ([]*timeseries, error)
 		if len(ts.Timestamps) > 0 {
 			ts.MetricName.CopyFrom(&rs.MetricName)
 			ts.denyReuse = true
+			tssLock.Lock()
 			tss = append(tss, &ts)
+			tssLock.Unlock()
 		}
 
-		tssLock.Unlock()
 		return nil
 	})
 	if err != errReachedLimit && err != nil {
