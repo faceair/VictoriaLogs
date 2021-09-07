@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/VictoriaMetrics/VictoriaLogs/app/vmselect/searchutils"
+	"github.com/VictoriaMetrics/VictoriaLogs/lib/netutil"
 	"github.com/VictoriaMetrics/VictoriaLogs/lib/storage"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/auth"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/bytesutil"
@@ -25,7 +26,6 @@ import (
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/handshake"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/httpserver"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/logger"
-	"github.com/VictoriaMetrics/VictoriaMetrics/lib/netutil"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/syncwg"
 	"github.com/VictoriaMetrics/metrics"
 	xxhash "github.com/cespare/xxhash/v2"
