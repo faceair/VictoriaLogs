@@ -12,7 +12,7 @@ import (
 	"github.com/VictoriaMetrics/VictoriaLogs/app/vmstorage/transport"
 	"github.com/VictoriaMetrics/VictoriaLogs/lib/storage"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/buildinfo"
-	"github.com/VictoriaMetrics/VictoriaMetrics/lib/cgroup"
+	_ "github.com/VictoriaMetrics/VictoriaMetrics/lib/cgroup"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/envflag"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/flagutil"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/fs"
@@ -47,7 +47,6 @@ func main() {
 	envflag.Parse()
 	buildinfo.Init()
 	logger.Init()
-	cgroup.UpdateGOMAXPROCSToCPUQuota()
 
 	storage.SetMinScrapeIntervalForDeduplication(*minScrapeInterval)
 	storage.SetFinalMergeDelay(*finalMergeDelay)
