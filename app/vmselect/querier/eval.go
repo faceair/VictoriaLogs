@@ -669,7 +669,7 @@ func evalMetricExpr(ec *EvalConfig, me *logql.MetricExpr) ([]*timeseries, error)
 
 		var ts timeseries
 
-		if !ec.Forward {
+		if ec.Forward {
 			for i := 0; i < len(rs.Timestamps); i++ {
 				count++
 				if count > ec.Limit {
