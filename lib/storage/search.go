@@ -255,8 +255,8 @@ func (s *Search) NextMetricBlock() bool {
 type FetchDataOption = uint8
 
 const (
-	NotFetch      FetchDataOption = 1
-	OnlyFetchTime                 = iota
+	NotFetch FetchDataOption = iota
+	OnlyFetchTime
 	FetchAll
 )
 

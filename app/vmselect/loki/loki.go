@@ -89,7 +89,8 @@ func FederateHandler(startTime time.Time, at *auth.Token, w http.ResponseWriter,
 		TagFilterss:  tagFilterss,
 		FetchData:    storage.FetchAll,
 	}
-	rss, isPartial, err := netstorage.ProcessSearchQuery(at, sq, deadline)
+	denyPartialResponse := searchutils.GetDenyPartialResponse(r)
+	rss, isPartial, err := netstorage.ProcessSearchQuery(at, denyPartialResponse, sq, deadline)
 	if err != nil {
 		return fmt.Errorf("cannot fetch data for %q: %w", sq, err)
 	}
@@ -170,7 +171,7 @@ func ExportNativeHandler(startTime time.Time, at *auth.Token, w http.ResponseWri
 	_, _ = bw.Write(trBuf)
 
 	// Marshal native blocks.
-	isPartial, err := netstorage.ExportBlocks(at, sq, deadline, func(mn *storage.MetricName, b *storage.Block, tr storage.TimeRange) error {
+	err = netstorage.ExportBlocks(at, sq, deadline, func(mn *storage.MetricName, b *storage.Block, tr storage.TimeRange) error {
 		if err := bw.Error(); err != nil {
 			return err
 		}
@@ -198,9 +199,6 @@ func ExportNativeHandler(startTime time.Time, at *auth.Token, w http.ResponseWri
 		bbPool.Put(dstBuf)
 		return err
 	})
-	if err == nil && isPartial && searchutils.GetDenyPartialResponse(r) {
-		err = fmt.Errorf("cannot return full response, since some of vmstorage nodes are unavailable")
-	}
 	if err != nil {
 		return err
 	}
@@ -327,7 +325,8 @@ func exportHandler(at *auth.Token, w http.ResponseWriter, r *http.Request, match
 	resultsCh := make(chan *quicktemplate.ByteBuffer, runtime.GOMAXPROCS(-1))
 	doneCh := make(chan error)
 	if !reduceMemUsage {
-		rss, isPartial, err := netstorage.ProcessSearchQuery(at, sq, deadline)
+		denyPartialResponse := searchutils.GetDenyPartialResponse(r)
+		rss, isPartial, err := netstorage.ProcessSearchQuery(at, denyPartialResponse, sq, deadline)
 		if err != nil {
 			return fmt.Errorf("cannot fetch data for %q: %w", sq, err)
 		}
@@ -355,7 +354,7 @@ func exportHandler(at *auth.Token, w http.ResponseWriter, r *http.Request, match
 		}()
 	} else {
 		go func() {
-			isPartial, err := netstorage.ExportBlocks(at, sq, deadline, func(mn *storage.MetricName, b *storage.Block, tr storage.TimeRange) error {
+			err := netstorage.ExportBlocks(at, sq, deadline, func(mn *storage.MetricName, b *storage.Block, tr storage.TimeRange) error {
 				if err := bw.Error(); err != nil {
 					return err
 				}
@@ -375,9 +374,6 @@ func exportHandler(at *auth.Token, w http.ResponseWriter, r *http.Request, match
 				exportBlockPool.Put(xb)
 				return nil
 			})
-			if err == nil && isPartial && searchutils.GetDenyPartialResponse(r) {
-				err = fmt.Errorf("cannot return full response, since some of vmstorage nodes are unavailable")
-			}
 			close(resultsCh)
 			doneCh <- err
 		}()
@@ -497,9 +493,10 @@ func LabelValuesHandler(startTime time.Time, at *auth.Token, labelName string, w
 	}
 	var labelValues []string
 	var isPartial bool
+	denyPartialResponse := searchutils.GetDenyPartialResponse(r)
 	if len(r.Form["match[]"]) == 0 && len(r.Form["start"]) == 0 && len(r.Form["end"]) == 0 {
 		var err error
-		labelValues, isPartial, err = netstorage.GetLabelValues(at, labelName, deadline)
+		labelValues, isPartial, err = netstorage.GetLabelValues(at, denyPartialResponse, labelName, deadline)
 		if err != nil {
 			return fmt.Errorf(`cannot obtain label values for %q: %w`, labelName, err)
 		}
@@ -521,7 +518,7 @@ func LabelValuesHandler(startTime time.Time, at *auth.Token, labelName string, w
 		if err != nil {
 			return err
 		}
-		labelValues, isPartial, err = labelValuesWithMatches(at, labelName, matches, start, end, deadline)
+		labelValues, isPartial, err = labelValuesWithMatches(at, labelName, matches, start, end, deadline, denyPartialResponse)
 		if err != nil {
 			return fmt.Errorf("cannot obtain label values for %q, match[]=%q, start=%d, end=%d: %w", labelName, matches, start, end, err)
 		}
@@ -541,7 +538,7 @@ func LabelValuesHandler(startTime time.Time, at *auth.Token, labelName string, w
 	return nil
 }
 
-func labelValuesWithMatches(at *auth.Token, labelName string, matches []string, start, end int64, deadline searchutils.Deadline) ([]string, bool, error) {
+func labelValuesWithMatches(at *auth.Token, labelName string, matches []string, start, end int64, deadline searchutils.Deadline, denyPartialResponse bool) ([]string, bool, error) {
 	if len(matches) == 0 {
 		logger.Panicf("BUG: matches must be non-empty")
 	}
@@ -573,7 +570,7 @@ func labelValuesWithMatches(at *auth.Token, labelName string, matches []string, 
 		TagFilterss:  tagFilterss,
 		FetchData:    storage.NotFetch,
 	}
-	rss, isPartial, err := netstorage.ProcessSearchQuery(at, sq, deadline)
+	rss, isPartial, err := netstorage.ProcessSearchQuery(at, denyPartialResponse, sq, deadline)
 	if err != nil {
 		return nil, false, fmt.Errorf("cannot fetch data for %q: %w", sq, err)
 	}
@@ -607,7 +604,8 @@ var labelValuesDuration = metrics.NewSummary(`vm_request_duration_seconds{path="
 // LabelsCountHandler processes /api/v1/labels/count request.
 func LabelsCountHandler(startTime time.Time, at *auth.Token, w http.ResponseWriter, r *http.Request) error {
 	deadline := searchutils.GetDeadlineForQuery(r, startTime)
-	labelEntries, isPartial, err := netstorage.GetLabelEntries(at, deadline)
+	denyPartialResponse := searchutils.GetDenyPartialResponse(r)
+	labelEntries, isPartial, err := netstorage.GetLabelEntries(at, denyPartialResponse, deadline)
 	if err != nil {
 		return fmt.Errorf(`cannot obtain label entries: %w`, err)
 	}
@@ -661,7 +659,8 @@ func TSDBStatusHandler(startTime time.Time, at *auth.Token, w http.ResponseWrite
 		}
 		topN = n
 	}
-	status, isPartial, err := netstorage.GetTSDBStatusForDate(at, deadline, date, topN)
+	denyPartialResponse := searchutils.GetDenyPartialResponse(r)
+	status, isPartial, err := netstorage.GetTSDBStatusForDate(at, denyPartialResponse, deadline, date, topN)
 	if err != nil {
 		return fmt.Errorf(`cannot obtain tsdb status for date=%d, topN=%d: %w`, date, topN, err)
 	}
@@ -691,9 +690,10 @@ func LabelsHandler(startTime time.Time, at *auth.Token, w http.ResponseWriter, r
 	}
 	var labels []string
 	var isPartial bool
+	denyPartialResponse := searchutils.GetDenyPartialResponse(r)
 	if len(r.Form["match[]"]) == 0 && len(r.Form["start"]) == 0 && len(r.Form["end"]) == 0 {
 		var err error
-		labels, isPartial, err = netstorage.GetLabels(at, deadline)
+		labels, isPartial, err = netstorage.GetLabels(at, denyPartialResponse, deadline)
 		if err != nil {
 			return fmt.Errorf("cannot obtain labels: %w", err)
 		}
@@ -702,7 +702,7 @@ func LabelsHandler(startTime time.Time, at *auth.Token, w http.ResponseWriter, r
 		// i.e. /api/v1/labels?match[]=foobar{baz="abc"}&start=...&end=...
 		matches := r.Form["match[]"]
 		if len(matches) == 0 {
-			matches = []string{"{__name__!=''}"}
+			matches = []string{"{job!=''}"}
 		}
 		ct := startTime.UnixNano() / 1e6
 		end, err := searchutils.GetTime(r, "end", ct)
@@ -713,12 +713,12 @@ func LabelsHandler(startTime time.Time, at *auth.Token, w http.ResponseWriter, r
 		if err != nil {
 			return err
 		}
-		labels, isPartial, err = labelsWithMatches(at, matches, start, end, deadline)
+		labels, isPartial, err = labelsWithMatches(at, matches, start, end, deadline, denyPartialResponse)
 		if err != nil {
 			return fmt.Errorf("cannot obtain labels for match[]=%q, start=%d, end=%d: %w", matches, start, end, err)
 		}
 	}
-	if isPartial && searchutils.GetDenyPartialResponse(r) {
+	if isPartial && denyPartialResponse {
 		return fmt.Errorf("cannot return full response, since some of vmstorage nodes are unavailable")
 	}
 
@@ -733,7 +733,7 @@ func LabelsHandler(startTime time.Time, at *auth.Token, w http.ResponseWriter, r
 	return nil
 }
 
-func labelsWithMatches(at *auth.Token, matches []string, start, end int64, deadline searchutils.Deadline) ([]string, bool, error) {
+func labelsWithMatches(at *auth.Token, matches []string, start, end int64, deadline searchutils.Deadline, denyPartialResponse bool) ([]string, bool, error) {
 	if len(matches) == 0 {
 		logger.Panicf("BUG: matches must be non-empty")
 	}
@@ -752,7 +752,7 @@ func labelsWithMatches(at *auth.Token, matches []string, start, end int64, deadl
 		TagFilterss:  tagFilterss,
 		FetchData:    storage.NotFetch,
 	}
-	rss, isPartial, err := netstorage.ProcessSearchQuery(at, sq, deadline)
+	rss, isPartial, err := netstorage.ProcessSearchQuery(at, denyPartialResponse, sq, deadline)
 	if err != nil {
 		return nil, false, fmt.Errorf("cannot fetch data for %q: %w", sq, err)
 	}
@@ -787,7 +787,8 @@ var labelsDuration = metrics.NewSummary(`vm_request_duration_seconds{path="/api/
 // SeriesCountHandler processes /api/v1/series/count request.
 func SeriesCountHandler(startTime time.Time, at *auth.Token, w http.ResponseWriter, r *http.Request) error {
 	deadline := searchutils.GetDeadlineForQuery(r, startTime)
-	n, isPartial, err := netstorage.GetSeriesCount(at, deadline)
+	denyPartialResponse := searchutils.GetDenyPartialResponse(r)
+	n, isPartial, err := netstorage.GetSeriesCount(at, denyPartialResponse, deadline)
 	if err != nil {
 		return fmt.Errorf("cannot obtain series count: %w", err)
 	}
@@ -816,9 +817,9 @@ func SeriesHandler(startTime time.Time, at *auth.Token, w http.ResponseWriter, r
 	if err := r.ParseForm(); err != nil {
 		return fmt.Errorf("cannot parse form values: %w", err)
 	}
-	matches := r.Form["match[]"]
+	matches := r.Form["match"]
 	if len(matches) == 0 {
-		return fmt.Errorf("missing `match[]` arg")
+		return fmt.Errorf("missing `match` arg")
 	}
 	end, err := searchutils.GetTime(r, "end", ct)
 	if err != nil {
@@ -850,7 +851,8 @@ func SeriesHandler(startTime time.Time, at *auth.Token, w http.ResponseWriter, r
 		TagFilterss:  tagFilterss,
 		FetchData:    storage.NotFetch,
 	}
-	rss, isPartial, err := netstorage.ProcessSearchQuery(at, sq, deadline)
+	denyPartialResponse := searchutils.GetDenyPartialResponse(r)
+	rss, isPartial, err := netstorage.ProcessSearchQuery(at, denyPartialResponse, sq, deadline)
 	if err != nil {
 		return fmt.Errorf("cannot fetch data for %q: %w", sq, err)
 	}

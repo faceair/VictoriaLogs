@@ -12,9 +12,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/VictoriaMetrics/VictoriaLogs/lib/protoparser/clusternative"
 	"github.com/VictoriaMetrics/VictoriaLogs/lib/storage"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/bytesutil"
-	"github.com/VictoriaMetrics/VictoriaMetrics/lib/consts"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/encoding"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/fasttime"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/handshake"
@@ -294,45 +294,10 @@ func (s *Server) isStopping() bool {
 }
 
 func (s *Server) processVMInsertConn(bc *handshake.BufferedConn) error {
-	sizeBuf := make([]byte, 8)
-	var reqBuf []byte
-	remoteAddr := bc.RemoteAddr().String()
-	for {
-		if _, err := io.ReadFull(bc, sizeBuf); err != nil {
-			if err == io.EOF {
-				// Remote end gracefully closed the connection.
-				return nil
-			}
-			return fmt.Errorf("cannot read packet size: %w", err)
-		}
-		packetSize := encoding.UnmarshalUint64(sizeBuf)
-		if packetSize > consts.MaxInsertPacketSize {
-			return fmt.Errorf("too big packet size: %d; shouldn't exceed %d", packetSize, consts.MaxInsertPacketSize)
-		}
-		reqBuf = bytesutil.Resize(reqBuf, int(packetSize))
-		if n, err := io.ReadFull(bc, reqBuf); err != nil {
-			return fmt.Errorf("cannot read packet with size %d: %w; read only %d bytes", packetSize, err, n)
-		}
-		// Send `ack` to vminsert that the packet has been received.
-		deadline := time.Now().Add(5 * time.Second)
-		if err := bc.SetWriteDeadline(deadline); err != nil {
-			return fmt.Errorf("cannot set write deadline for sending `ack` to vminsert: %w", err)
-		}
-		sizeBuf[0] = 1
-		if _, err := bc.Write(sizeBuf[:1]); err != nil {
-			return fmt.Errorf("cannot send `ack` to vminsert: %w", err)
-		}
-		if err := bc.Flush(); err != nil {
-			return fmt.Errorf("cannot flush `ack` to vminsert: %w", err)
-		}
-		vminsertPacketsRead.Inc()
-
-		uw := getUnmarshalWork()
-		uw.storage = s.storage
-		uw.remoteAddr = remoteAddr
-		uw.reqBuf, reqBuf = reqBuf, uw.reqBuf
-		unmarshalWorkCh <- uw
-	}
+	return clusternative.ParseStream(bc, func(rows []storage.MetricRow) error {
+		vminsertMetricsRead.Add(len(rows))
+		return s.storage.AddRows(rows, uint8(*precisionBits))
+	})
 }
 
 var (

@@ -77,13 +77,13 @@ func unmarshalBytesArray(dst [][]byte, src []byte, mt MarshalType, itemsCount in
 			return nil, fmt.Errorf("cannot decompress zstd data: %w", err)
 		}
 
-		var b []byte
 		for i := 0; i < itemsCount; i++ {
+			var b = []byte{}
 			bb.B, b, err = encoding.UnmarshalBytes(bb.B)
 			if err != nil {
 				return nil, err
 			}
-			dst = append(dst, append([]byte(nil), b...))
+			dst = append(dst, b)
 		}
 	default:
 		return nil, fmt.Errorf("unknown MarshalType=%d", mt)
